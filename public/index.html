@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Graph + 360 Viewer</title>
+  <link rel="icon" href="data:,"> <!-- no favicon - this stops the browser's automatic /favicon.ico request (and its noisy 404) -->
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core/index.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/markers-plugin/index.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/compass-plugin/index.css" />
+
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #eee;
+      font-family: system-ui, sans-serif;
+      overflow: hidden;
+    }
+
+    /* the loader only ever shows for a brief flicker between panoramas -
+       setPanorama's own showLoader:false covers most calls, this is a hard
+       backstop for any path that doesn't (e.g. the viewer's initial load) */
+    .psv-loader-container {
+      display: none !important;
+    }
+
+    /* 360 viewer fills everything */
+    #viewer {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+    }
+
+    /* temporary: crosshair at screen center for precise QA alignment */
+    /* ekran ładowania zdjęcia: nad widokiem 360, pod panelami; nie blokuje myszy,
+       więc można dalej oglądać poprzednie zdjęcie, dopóki nowe się pobiera */
+    #photoLoading {
+      position: fixed; inset: 0; z-index: 5;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0, 0, 0, 0.35); pointer-events: none;
+    }
+    #photoLoading[hidden] { display: none; }
+    .pl-box {
+      min-width: 280px; padding: 18px 26px; text-align: center;
+      background: rgba(20, 20, 20, 0.92); border: 1px solid #444; border-radius: 8px;
+    }
+    .pl-title { font-size: 16px; margin-top: 10px; }
+    .pl-sub { margin-top: 4px; color: #9ab; font-size: 13px; min-height: 1.2em; }
+    .pl-spinner {
+      width: 34px; height: 34px; margin: 0 auto; border-radius: 50%;
+      border: 4px solid #333; border-top-color: #4aa3ff; animation: pl-spin 0.9s linear infinite;
+    }
+    @keyframes pl-spin { to { transform: rotate(360deg); } }
+    .pl-bar { margin-top: 12px; height: 6px; background: #333; border-radius: 3px; overflow: hidden; }
+    #plBar { height: 100%; width: 0; background: #4aa3ff; transition: width 0.15s; }
+    #plBar.indeterminate { width: 40%; animation: pl-slide 1.1s ease-in-out infinite; }
+    @keyframes pl-slide { 0% { margin-left: -40%; } 100% { margin-left: 100%; } }
+    #photoLoading.error .pl-spinner { border-top-color: #ef4444; animation: none; }
+    #photoLoading.error #plBar { background: #ef4444; width: 100%; }
+    #cacheStatus { margin-top: 8px; font-size: 11px; color: #777; }
+
+    #viewerCrosshair {
+      position: fixed;
+      top: 50%; left: 50%;
+      width: 40px; height: 40px;
+      transform: translate(-50%, -50%);
+      z-index: 5;
+      pointer-events: none;
+    }
+    #viewerCrosshair::before, #viewerCrosshair::after {
+      content: ''; position: absolute; background: rgba(255, 59, 48, 0.85);
+    }
+    #viewerCrosshair::before { top: 50%; left: 0; right: 0; height: 1px; transform: translateY(-50%); }
+    #viewerCrosshair::after { left: 50%; top: 0; bottom: 0; width: 1px; transform: translateX(-50%); }
+
+    /* map floats above */
+    #mapPanel {
+      position: fixed;
+      left: 16px;
+      bottom: 16px;
+      width: 420px;
+      /* placeholder 3:2 ratio until real node data loads and sets the real
+         one (applyMapPanelShape) - anchored bottom-left, so height changes
+         extend the panel upward without moving its bottom-left corner */
+      aspect-ratio: 420 / 280;
+      background: #1a1a1a;
+      border: 1px solid #444;
+      z-index: 10;
+    }
+    #map { width: 100%; height: 100%; }
+
+    /* drag this to resize the whole panel (uniformly, aspect-ratio locked) -
+       distinct from the wheel-zoom inside the SVG, which zooms the content
+       without changing the panel's own size on the page */
+    #mapResizeHandle {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 16px;
+      height: 16px;
+      cursor: nesw-resize;
+      background: linear-gradient(135deg, transparent 50%, #4aa3ff 50%);
+      opacity: 0.7;
+    }
+    #mapResizeHandle:hover { opacity: 1; }
+
+    /* bigger, easier-to-find drag targets along the two edges that actually
+       move when resizing (panel is anchored bottom-left) - same resize
+       logic as the corner handle, just a larger hit area; the highlight on
+       hover doubles as the "you can drag this" indicator */
+    #mapResizeEdgeTop, #mapResizeEdgeRight {
+      position: absolute;
+      background: transparent;
+      transition: background 0.15s;
+    }
+    #mapResizeEdgeTop {
+      top: 0; left: 0; right: 16px; height: 6px;
+      cursor: ns-resize;
+    }
+    #mapResizeEdgeRight {
+      top: 16px; right: 0; bottom: 0; width: 6px;
+      cursor: ew-resize;
+    }
+    #mapResizeEdgeTop:hover, #mapResizeEdgeRight:hover {
+      background: rgba(74, 163, 255, 0.6);
+    }
+    #layerToggles {
+      position: absolute; top: 0; left: 100%; margin-left: 6px; z-index: 20;
+      background: rgba(0,0,0,0.7); border-radius: 3px; padding: 4px;
+      font-size: 11px; color: #ccc; max-height: 90vh; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .layer-btn {
+      display: block; width: 100%; box-sizing: border-box; text-align: left;
+      background: #2a2a2a; color: #ccc; border: 1px solid #555; border-radius: 3px;
+      padding: 3px 8px; font-size: 11px; font-family: inherit; cursor: pointer;
+      white-space: nowrap;
+    }
+    .layer-btn:hover { background: #3a3a3a; }
+    .layer-btn.active {
+      background: #4aa3ff; color: #fff; border-color: #7cc0ff;
+      box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.6);
+    }
+
+    .node {
+      fill: #4aa3ff;
+      stroke: rgba(0, 0, 0, 0.6);
+      stroke-width: 1px;
+      cursor: pointer;
+      transition: fill 0.15s;
+    }
+
+    .node.stairs, .node.elevator {
+      fill: #1e3a8a;
+    }
+
+    /* equal specificity to .node.stairs/.elevator above - source order makes
+       "you are here" and "part of the active route" win over the static
+       stairs/elevator color when they overlap on the same node */
+    .node.highlighted {
+      fill: #a855f7;
+      filter: url(#glow);
+    }
+
+    .node.route {
+      fill: #22c55e;
+    }
+
+    .edge {
+      stroke: #eee;
+      stroke-width: 2.4;
+      cursor: pointer;
+    }
+
+    .edge.flash {
+      animation: edge-flash 0.6s ease-in-out;
+    }
+
+    @keyframes edge-flash {
+      0%   { stroke-opacity: 0.2; }
+      50%  { stroke-opacity: 1; }
+      100% { stroke-opacity: 0.2; }
+    }
+
+    .edge.route {
+      stroke: #22c55e;
+      stroke-width: 3.5;
+    }
+
+    /* the most recently walked edge of an active route - distinct from both
+       the "upcoming route" green and the plain default color */
+    .edge.traveled {
+      stroke: #f59e0b;
+      stroke-width: 3.5;
+    }
+
+    .node-group text {
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .node-group:hover text {
+      opacity: 1;
+    }
+
+    text {
+      fill: #eee;
+      font-size: 10px;
+      pointer-events: none;
+      paint-order: stroke fill;
+      stroke: rgba(0, 0, 0, 0.85);
+      stroke-width: 3px;
+      stroke-linejoin: round;
+    }
+
+    .node-marker {
+      background: rgba(0, 0, 0, 0.65);
+      color: #fff;
+      border: 1px solid #4aa3ff;
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: 13px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .node-marker:hover {
+      background: rgba(74, 163, 255, 0.85);
+    }
+
+    #controls {
+      position: fixed;
+      right: 16px;
+      top: 16px;
+      width: 300px;
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+      box-sizing: border-box;
+      background: rgba(22, 22, 24, 0.94);
+      backdrop-filter: blur(6px);
+      border: 1px solid #3a3a3e;
+      border-radius: 10px;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+      z-index: 10;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: #ddd;
+    }
+    #controls h3 {
+      margin: 14px 0 6px; font-size: 11px; font-weight: 600; color: #8a8a92;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    #controls #controlsHeader h3 { margin: 0; font-size: 15px; color: #fff; text-transform: none; letter-spacing: 0; }
+    #controls input[type=text] {
+      width: 100%; box-sizing: border-box; padding: 9px 11px; margin-bottom: 6px;
+      background: #101012; color: #eee; border: 1px solid #44444a; border-radius: 6px;
+      font: inherit; outline: none;
+    }
+    #controls input[type=text]:focus { border-color: #4aa3ff; box-shadow: 0 0 0 2px rgba(74, 163, 255, 0.25); }
+    #searchResults {
+      max-height: 200px; overflow-y: auto; overscroll-behavior: contain; margin-bottom: 6px;
+      border-radius: 6px; scrollbar-width: thin; scrollbar-color: #5a5a62 #1d1d20;
+    }
+    #searchResults:not(:empty) { background: #141416; border: 1px solid #34343a; padding: 3px; }
+    #searchResults .res { padding: 6px 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; border-radius: 5px; }
+    #searchResults .res:hover { background: #2c2c30; }
+    #searchResults .res { user-select: none; border-left: 3px solid transparent; }
+    /* wybrany cel: jedna pozycja (obie linijki to jeden węzeł), z paskiem po lewej */
+    #searchResults .res.selected { background: rgba(46, 204, 113, 0.16); border-left-color: #2ecc71; }
+    #searchResults .res.selected .res-poi { color: #9be8bd; }
+    #searchResults .res .res-label { flex: 1 1 auto; }
+    #searchResults .res .res-sub { color: #999; font-size: 11px; }
+    #searchResults .res .res-label { min-width: 0; }
+    /* linijka z dopasowanym miejscem pod nazwą węzła (np. "Sala 411") */
+    #searchResults .res .res-poi { display: block; margin-top: 1px; font-size: 11.5px; color: #7cc0ff; }
+    #searchResults .res .res-poi::before { content: '↳ '; color: #5a6a7a; }
+    #searchResults .res.res-node { padding-left: 20px; font-size: 12px; }
+    #searchResults .res-empty { padding: 6px 8px; color: #888; font-size: 12px; }
+
+    /* ograniczenia użytkownika: duże, wyraźnie zaznaczalne kafelki */
+    #flags { display: flex; flex-direction: column; gap: 6px; padding-bottom: 3px; }
+    #flags label {
+      display: block; position: relative;
+      padding: 7px 10px; font-size: 12.5px; line-height: 1.2; color: #c8c8ce; text-align: center;
+      background: linear-gradient(#34343a, #2a2a2f); border: 1px solid #4a4a52; border-bottom-color: #1a1a1d;
+      border-radius: 6px; cursor: pointer; user-select: none;
+      box-shadow: 0 2px 0 #141416, 0 3px 5px rgba(0, 0, 0, 0.4);
+      transform: translateY(0);
+      transition: transform 0.08s, box-shadow 0.08s, background 0.1s, color 0.1s;
+    }
+    #flags label:hover { background: linear-gradient(#3c3c43, #303036); }
+    /* zaznaczone = wciśnięty przycisk: opuszczony, wklęsły, przyciemniony, z niebieskim blaskiem */
+    #flags label:has(input:checked) {
+      transform: translateY(2px);
+      background: linear-gradient(#17304d, #1d3d63); color: #fff;
+      border-color: #0f1c2e; border-top-color: #09121f;
+      box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.65), inset 0 0 0 1px rgba(74, 163, 255, 0.55);
+    }
+    #flags label:has(input:focus-visible) { outline: 2px solid #7cc0ff; outline-offset: 2px; }
+    #flags input[type=checkbox] { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }
+
+    #routeBtn, #walkBtn {
+      width: 100%; padding: 11px; margin-top: 10px; cursor: pointer;
+      font: inherit; font-weight: 600; border-radius: 8px; border: 1px solid transparent;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    #routeBtn { background: #4aa3ff; color: #fff; }
+    #routeBtn:hover { background: #3a93ef; }
+    #walkBtn { background: #26262a; color: #ddd; border-color: #4a4a50; margin-top: 6px; }
+    #walkBtn:hover { background: #303036; }
+    /* spacer włączony = wciśnięty, lekko świecący na zielono */
+    #walkBtn.on {
+      transform: translateY(2px);
+      background: linear-gradient(#0f3a22, #14502e); color: #eafff1;
+      border-color: #1f8f50;
+      box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.6), 0 0 10px rgba(46, 204, 113, 0.55), 0 0 2px rgba(46, 204, 113, 0.9);
+    }
+    #walkBtn[hidden] { display: none; }
+    #routeStatus { margin-top: 10px; font-size: 12px; color: #aaa; white-space: pre-wrap; }
+
+    #controlsHeader { display: flex; justify-content: space-between; align-items: center; }
+    #controlsHeader h3 { margin: 4px 0; }
+    #minimizeBtn { background: none; border: 1px solid #55555c; color: #ccc; border-radius: 6px; cursor: pointer; padding: 2px 10px; }
+    #minimizeBtn:hover { background: #2c2c30; }
+    #controls.minimized #controlsBody { display: none; }
+
+  </style>
+</head>
+
+<body>
+  <div id="viewer"></div>
+  <div id="photoLoading" hidden>
+    <div class="pl-box">
+      <div class="pl-spinner"></div>
+      <div class="pl-title" id="plTitle">Pobieranie zdjęcia z platformy</div>
+      <div class="pl-sub" id="plSub"></div>
+      <div class="pl-bar"><div id="plBar"></div></div>
+    </div>
+  </div>
+  <div id="viewerCrosshair"></div>
+  <div id="mapPanel">
+    <div id="layerToggles"></div>
+    <svg id="map"></svg>
+    <div id="mapResizeEdgeTop" title="Przeciągnij, aby zmienić rozmiar"></div>
+    <div id="mapResizeEdgeRight" title="Przeciągnij, aby zmienić rozmiar"></div>
+    <div id="mapResizeHandle" title="Przeciągnij, aby zmienić rozmiar"></div>
+  </div>
+
+  <div id="controls">
+    <div id="controlsHeader">
+      <h3>Nawigacja</h3>
+      <button id="minimizeBtn" title="Zwiń/rozwiń">_</button>
+    </div>
+    <div id="controlsBody">
+      <h3>Szukaj celu</h3>
+      <input type="text" id="searchInput" placeholder="miejsce lub nazwa punktu..." autocomplete="off" />
+      <div id="searchResults"></div>
+
+      <h3>Twoje ograniczenia</h3>
+      <div id="flags"></div>
+
+      <button id="routeBtn">Znajdź trasę</button>
+      <button id="walkBtn" hidden>▶ Idź trasą automatycznie</button>
+      <div id="routeStatus"></div>
+      <div id="cacheStatus"></div>
+    </div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three/build/three.module.js",
+        "@photo-sphere-viewer/core": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core/index.module.js",
+        "@photo-sphere-viewer/markers-plugin": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/markers-plugin/index.module.js",
+        "@photo-sphere-viewer/compass-plugin": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/compass-plugin/index.module.js",
+        "fuse.js": "/vendor/fuse/fuse.mjs"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import { Viewer } from '@photo-sphere-viewer/core';
+    import { MarkersPlugin } from '@photo-sphere-viewer/markers-plugin';
+    import { CompassPlugin } from '@photo-sphere-viewer/compass-plugin';
+    import Fuse from 'fuse.js';
+    import { createSearcher } from '/js/poiSearch.mjs';
+    import { PhotoCache, prefetchOrder } from '/js/photoCache.mjs';
+
+    // Photographer always faced true north when starting each 360 shot, so
+    // this offset converts a geometric bearing into photo yaw. Refit to
+    // -0.7deg from the same 15-sample ground truth used to fix bearingDeg's
+    // axis bug above - the old 50.9deg pixel-measurement-off-one-photo value
+    // no longer holds once that bug is fixed (a handful of outlier photos
+    // still need individual correction via tools/apply_photo_rotation.py -
+    // this is just the shared/consensus value for everything else).
+    const NORTH_OFFSET_DEG = -0.7;
+
+    /* ------------------ CONFIG ------------------ */
+
+    const PADDING_FRAC = 0.07; // ~7% margin around content on each axis, was a fixed 30px at the original 420px default width
+    const INITIAL_NODE_NAME = 'Zewnątrz Południe';
+
+    /* ------------------ STATE ------------------ */
+
+    let highlightedNodeId = null;
+    const navigationHistory = []; // stack of previously-visited node ids (Ctrl+Z steps back through these)
+    const nodeEls = new Map();
+    const edgeEls = new Map(); // canonical "name-name" -> <line>
+    let viewer = null;
+    let graphData = null;
+    let mapDragMoved = false; // set mid-drag on the 2D map so the click that follows a pan doesn't also navigate
+    let mouseOverMap = false; // WASD pans the 2D map instead of stepping the 360 view while true (Q/E always stay 3D)
+    // meter-space bounds {x_min,y_min,x_max,y_max} of the static satellite
+    // backdrop image, generated by tools/fetch_satellite_overlay.py using the
+    // same lat/lon projection as the node x/y - null until it loads at boot
+    let satelliteOverlayBounds = null;
+    let selectedDestinationId = null;
+    let selectedLayer = '0'; // exclusive: exactly one practical floor shown on the mini-map at a time - defaults to Parter
+    // active pathfinding result being walked: { nodeNames: [...], edgeKeys: [...], progress }
+    // progress = index of the node we're currently at; edges/nodes ahead of it
+    // stay highlighted, the one just behind it gets the distinct "traveled"
+    // color, anything further behind goes back to plain/normal - null when
+    // there's no route in progress
+    let activeRoute = null;
+    let mapViewBox = null; // {x,y,w,h} scroll-zoom/pan state for the mini-map - persists across redraws (layer toggles, navigation), null until first render sets it to the full-fit default
+
+    const FLOOR_LABELS = { '-1': 'Poziom -1', '0': 'Parter', '2': 'Poziom 2', '3': 'Poziom 3', '4': 'Poziom 4' };
+    const METERS_PER_LEVEL = 3.5; // must match tools/build_export.py
+
+    const MAP_PANEL_MIN_WIDTH = 220, MAP_PANEL_MAX_WIDTH = 1100;
+    // the panel's real geographic aspect ratio is quite tall (portrait) -
+    // this compresses it a bit shorter than a pure 1:1 geographic fit for a
+    // more comfortable default shape; computeTransform's own centering
+    // already handles the resulting small top/bottom margin gracefully
+    const MAP_PANEL_HEIGHT_FACTOR = 0.88;
+
+    // Real floors are whole numbers, but some stairwell/landing points sit at
+    // a half-floor Z (a mid-flight landing) - those aren't a 7th real floor,
+    // they belong with whichever floor makes practical sense. Prefer an
+    // explicit floor number baked into the name (e.g. "2pientro1" is named
+    // like its floor-2 siblings despite a half-floor Z; "Piętro-11/12" are
+    // floor -1). Only fall back to nearest-whole-floor rounding when the name
+    // gives no hint (e.g. "Schody44", "Makspółpietrwo" - both genuinely sit
+    // exactly at the midpoint between two floors).
+    // 2026-08-27 korekta: floor 1 doesn't get its own bucket - folded into
+    // Parter per user (whatever would've landed on "1" maps to "0" instead).
+    function practicalLayerFor(node) {
+      const name = node.properties.name;
+      let floor;
+      const prefixMatch = name.match(/^(\d)\s*pi[eę]tro/i);
+      if (prefixMatch) {
+        floor = prefixMatch[1];
+      } else {
+        const negMatch = name.match(/pi[eę]tro-(\d)/i);
+        floor = negMatch ? String(-Number(negMatch[1])) : String(Math.round(node.properties.z / METERS_PER_LEVEL));
+      }
+      return floor === '1' ? '0' : floor;
+    }
+
+    const USER_CLASS_LABELS = {
+      U1: 'Lokomocyjna (chód, wózek, równowaga)',
+      U2: 'Manipulacyjna (chwyt, siła rąk)',
+      U3: 'Wzrokowa',
+      U4: 'Sensoryczna pozawzrokowa (dotyk)',
+      U5: 'Poznawcza (uwaga, orientacja)',
+      U6: 'Stres / presja czasu (tłok, ewakuacja)',
+      U7: 'Zmęczeniowa',
+    };
+
+    /* ------------------ FETCH ------------------ */
+
+    async function safeFetch(url) {
+      const res = await fetch(url);
+      const ct = res.headers.get('content-type');
+      if (!ct || !ct.includes('application/json')) {
+        const text = await res.text().catch(() => '');
+        throw new Error(`Expected JSON from ${url}. Got: ${text.slice(0, 200)}`);
+      }
+      return res.json();
+    }
+
+    /* ------------------ VIEWER MODULE ------------------ */
+
+    function initViewer() {
+      viewer = new Viewer({
+        container: document.querySelector('#viewer'),
+        defaultYaw: '17deg',
+        defaultPitch: '-2.5deg',
+        navbar: false,
+        // drag momentum defaults on (moveInertia: 0.8) - the view keeps
+        // drifting for a moment after you release the mouse, so the yaw at
+        // the instant you click a calibration button can differ from what
+        // you visually confirmed lined up with the crosshair. Off for
+        // precise calibration; costs a bit of drag smoothness elsewhere.
+        moveInertia: false,
+        // NOTE: sphereCorrection is for fixing crooked panorama *capture*
+        // (camera tilt), not for redefining yaw-to-heading for app logic -
+        // tested it here (both signs) and it has zero effect on marker
+        // position, so the north offset below is applied manually instead.
+        plugins: [
+          MarkersPlugin,
+          [CompassPlugin, {
+            size: '100px',
+            position: ['bottom', 'right'],
+          }],
+        ],
+      });
+
+      const markers = viewer.getPlugin(MarkersPlugin);
+      markers.addEventListener('select-marker', ({ marker }) => {
+        if (marker.data && marker.data.nodeId !== undefined) {
+          setHighlight(marker.data.nodeId);
+        }
+      });
+    }
+
+    // bearing (compass deg, 0=N/clockwise) from `from` to `to`, using stored
+    // x=east(+)/west(-), y=north(+)/south(-) meters.
+    // dy is negated: stored y turned out to be south-positive despite the
+    // north-positive convention this was originally written against, which
+    // silently swapped every front/back placement while leaving left/right
+    // correct (an atan2 sign bug, not measurement noise - user's exact call).
+    // Confirmed against the same 15-sample ground truth used for pitchDeg:
+    // un-flipped RMSE=100.3deg, flipped RMSE=32.3deg (6.9deg excl. the 2
+    // samples already known to be noisy ground-truth points).
+    function bearingDeg(from, to) {
+      const dx = to.properties.x - from.properties.x;
+      const dy = to.properties.y - from.properties.y;
+      let deg = Math.atan2(dx, -dy) * 180 / Math.PI;
+      return (deg + 360) % 360;
+    }
+
+    // The camera sits elevated above its own node's floor position, while a
+    // neighbor is targeted at foot/floor level with no such offset - so even
+    // a same-floor neighbor needs a real negative (downward) pitch, which a
+    // plain dz-only model can't produce. Fit against 15 real user-measured
+    // "perfect" placements across 5 different nodes/photos (not guessed):
+    // CAMERA_HEIGHT=2.40m gives 3.07deg RMSE; the earlier flat negation this
+    // replaced was a qualitative guess that fit 3.4x worse (10.41deg) and
+    // only "worked" with a physically nonsensical *negative* camera height.
+    const CAMERA_HEIGHT_M = 2.40;
+    function pitchDeg(from, to) {
+      const dx = to.properties.x - from.properties.x;
+      const dy = to.properties.y - from.properties.y;
+      const dz = to.properties.z - from.properties.z;
+      const horiz = Math.hypot(dx, dy);
+      return Math.atan2(dz - CAMERA_HEIGHT_M, horiz) * 180 / Math.PI;
+    }
+
+    function updateNeighborMarkers(nodeId) {
+      const markers = viewer && viewer.getPlugin(MarkersPlugin);
+      if (!markers || !graphData) return;
+      markers.clearMarkers();
+
+      const current = graphData.nodes.find(n => n.id === nodeId);
+      if (!current) return;
+
+      const neighborIds = new Set();
+      graphData.edges.forEach(e => {
+        if (e.from === nodeId) neighborIds.add(e.to);
+        else if (e.to === nodeId) neighborIds.add(e.from);
+      });
+
+      neighborIds.forEach(id => {
+        const neighbor = graphData.nodes.find(n => n.id === id);
+        if (!neighbor || !neighbor.properties.name) return;
+
+        const bearing = bearingDeg(current, neighbor);
+        const yawDeg = (bearing + NORTH_OFFSET_DEG + 360) % 360;
+        const pitch = pitchDeg(current, neighbor);
+
+        markers.addMarker({
+          id: `neighbor-${id}`,
+          position: { yaw: `${yawDeg}deg`, pitch: `${pitch}deg` },
+          html: `<div class="node-marker">${neighbor.properties.name}</div>`,
+          anchor: 'bottom center',
+          data: { nodeId: id },
+        });
+      });
+    }
+
+    /* ------------------ PHOTOS: pobieranie, cache, panorama ------------------ */
+
+    // Zdjęcia pobiera przeglądarka (nie nasz serwer) z bram IPFS, przez PhotoCache:
+    // trwały cache w Cache Storage, prefetch wszystkich zdjęć w tle od najbliższych,
+    // a wybrane przez użytkownika zdjęcie ma bezwzględne pierwszeństwo. Nawigacja
+    // jest dwuetapowa: najpierw zdjęcie (z ekranem ładowania), dopiero po jego
+    // załadowaniu zmienia się reszta (mapa, znaczniki, trasa, piętro).
+    let ipfsGateways = [];
+    let photoCache = null;
+    let navToken = 0;            // liczy się tylko ostatnia nawigacja
+    let shownPhotoNodeId = null; // węzeł, którego zdjęcie jest aktualnie pokazane
+    let loadingTimer = null;
+    let errorTimer = null;
+    const PHOTO_LOADING_DELAY_MS = 150; // krótsze pobrania nie migają ekranem ładowania
+
+    function setPhotoLoadingProgress(loaded, total) {
+      const bar = document.getElementById('plBar');
+      if (total) {
+        bar.classList.remove('indeterminate');
+        bar.style.width = `${Math.min(100, Math.round(loaded / total * 100))}%`;
+        document.getElementById('plSub').dataset.progress =
+          ` ${(loaded / 1048576).toFixed(2)} / ${(total / 1048576).toFixed(2)} MB`;
+      } else {
+        bar.classList.add('indeterminate');
+      }
+      refreshLoadingSub();
+    }
+
+    function refreshLoadingSub() {
+      const sub = document.getElementById('plSub');
+      sub.textContent = (sub.dataset.name || '') + (sub.dataset.progress ? ' ·' + sub.dataset.progress : '');
+    }
+
+    function showPhotoLoading(node) {
+      hidePhotoLoading();
+      loadingTimer = setTimeout(() => {
+        const el = document.getElementById('photoLoading');
+        el.classList.remove('error');
+        document.getElementById('plTitle').textContent = 'Pobieranie zdjęcia z platformy';
+        const sub = document.getElementById('plSub');
+        sub.dataset.name = node.properties.name;
+        sub.dataset.progress = '';
+        refreshLoadingSub();
+        const bar = document.getElementById('plBar');
+        bar.style.width = '0';
+        bar.classList.add('indeterminate');
+        el.hidden = false;
+      }, PHOTO_LOADING_DELAY_MS);
+    }
+
+    function hidePhotoLoading() {
+      clearTimeout(loadingTimer);
+      clearTimeout(errorTimer);
+      document.getElementById('photoLoading').hidden = true;
+    }
+
+    function showPhotoError(node) {
+      hidePhotoLoading();
+      const el = document.getElementById('photoLoading');
+      el.classList.add('error');
+      document.getElementById('plTitle').textContent = 'Nie udało się pobrać zdjęcia';
+      const sub = document.getElementById('plSub');
+      sub.dataset.name = node.properties.name;
+      sub.dataset.progress = '';
+      refreshLoadingSub();
+      el.hidden = false;
+      errorTimer = setTimeout(() => { el.hidden = true; }, 4000);
+    }
+
+    function updateCacheStatus(s) {
+      const el = document.getElementById('cacheStatus');
+      if (!el) return;
+      el.textContent = `Zdjęcia w pamięci: ${s.available}/${s.total}` +
+        (s.queued || s.foreground ? ' (pobieranie w tle…)' : '');
+    }
+
+    // Ustawia panoramę z już pobranego zdjęcia (blob). Rozwiązuje się, gdy tekstura
+    // jest załadowana ('panorama-loaded') - czyli zdjęcie jest już widoczne i zaczyna
+    // się przejście; samo przejście dokończy się w tle. Odrzuca, gdy ładowanie
+    // przerwie nowsze ustawienie panoramy.
+    let photoTransition = Promise.resolve(); // kończy się, gdy przejście do nowego zdjęcia dobiegnie końca
+    async function showPanorama(node, fromNodeId, trackDirection, url) {
+      const options = { showLoader: false };
+
+      // obróć się w stronę ruchu podczas przejścia (jak spacer w Google Earth /
+      // Street View) - ten sam azymut i pitch, co dla znaczników sąsiadów i WASD.
+      // Nie dla kroków pionowych (Q/E): przy zmianie piętra nie ma "kierunku".
+      const fromNode = fromNodeId != null ? graphData.nodes.find(n => n.id === fromNodeId) : null;
+      if (trackDirection && fromNode && fromNode.properties.name && fromNode.id !== node.id) {
+        const yaw = (bearingDeg(fromNode, node) + NORTH_OFFSET_DEG + 360) % 360;
+        const pitch = pitchDeg(fromNode, node);
+        options.position = { yaw: `${yaw}deg`, pitch: `${pitch}deg` };
+      }
+
+      const loaded = new Promise(resolve => viewer.addEventListener('panorama-loaded', resolve, { once: true }));
+      const done = viewer.setPanorama(url, options);
+      done.catch(() => {}); // błąd/przerwanie obsługuje await poniżej
+      photoTransition = done.then(() => {}, () => {}); // koniec animacji przejścia (fade + obrót)
+      await Promise.race([loaded, done]);
+    }
+
+    // Nawigacja do węzła: 1) pobierz zdjęcie (ekran ładowania, jeśli trzeba),
+    // 2) pokaż je, 3) dopiero wtedy zatwierdź zmianę stanu (commitNavigation).
+    async function navigateTo(nodeId, opts = {}) {
+      if (!graphData || !viewer || !photoCache) return;
+      const node = graphData.nodes.find(n => n.id === nodeId);
+      if (!node || !node.properties.name) return;
+      if (nodeId === highlightedNodeId && shownPhotoNodeId === nodeId) return;
+      const token = ++navToken;
+
+      const needsDownload = !photoCache.isReady(nodeId) && !photoCache.isAvailableOffline(nodeId);
+      if (needsDownload) showPhotoLoading(node);
+
+      // najpierw start pobierania wybranego zdjęcia (priorytet absolutny), potem
+      // kolejność tła od okolicy nowego miejsca
+      const photoPromise = photoCache.get(nodeId, {
+        onProgress: needsDownload ? (l, t) => { if (token === navToken) setPhotoLoadingProgress(l, t); } : undefined,
+      });
+      const order = prefetchOrder(graphData.nodes, graphData.edges, nodeId);
+      const saveData = navigator.connection && navigator.connection.saveData;
+      photoCache.prefetch(saveData ? order.slice(0, 8) : order);
+
+      let photo;
+      try {
+        photo = await photoPromise;
+      } catch (err) {
+        if (token === navToken) { console.error(`zdjęcie ${node.properties.name}:`, err); showPhotoError(node); }
+        return;
+      }
+      if (token !== navToken) return; // w międzyczasie wybrano inne miejsce
+      hidePhotoLoading();
+
+      const previousNodeId = highlightedNodeId;
+      try {
+        await showPanorama(node, previousNodeId, opts.trackDirection !== false, photo.url);
+      } catch (err) {
+        if (token === navToken) console.error(`panorama ${node.properties.name}:`, err);
+        return;
+      }
+      if (token !== navToken) return;
+      commitNavigation(nodeId, previousNodeId, opts);
+    }
+
+    /* ------------------ MAP UTILS ------------------ */
+
+    function flashEdge(line) {
+      line.classList.remove('flash');
+      void line.getBoundingClientRect();
+      line.classList.add('flash');
+    }
+
+    // Collapse opposite one-way edges into a single bidirectional edge
+    function normalizeEdges(rawEdges) {
+    const map = new Map();
+
+    rawEdges.forEach(e => {
+        const key =
+        e.from < e.to
+            ? `${e.from}-${e.to}`
+            : `${e.to}-${e.from}`;
+
+        if (!map.has(key)) {
+        map.set(key, {
+            a: e.from,
+            b: e.to,
+            ab: false, // a -> b
+            ba: false  // b -> a
+        });
+        }
+
+        const entry = map.get(key);
+
+        if (e.from === entry.a && e.to === entry.b) {
+        entry.ab = true;
+        } else if (e.from === entry.b && e.to === entry.a) {
+        entry.ba = true;
+        }
+    });
+
+    return Array.from(map.values()).map(e => ({
+        a: e.a,
+        b: e.b,
+        ab: e.ab,
+        ba: e.ba,
+        bidirectional: e.ab && e.ba
+    }));
+    }
+
+    function computeTransform(nodes, width, height) {
+      const xs = nodes.map(n => n.properties.x);
+      const ys = nodes.map(n => n.properties.y);
+
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      const minY = Math.min(...ys);
+      const maxY = Math.max(...ys);
+
+      const spanX = maxX - minX || 1;
+      const spanY = maxY - minY || 1;
+
+      // padding as a fraction of each axis's own span (not a fixed pixel
+      // constant) - a fixed-pixel margin only cancels out exactly at one
+      // "magic" panel size, since #mapPanel's aspect-ratio is set to match
+      // spanX:spanY (applyMapPanelShape); a fractional margin scales
+      // proportionally with it at every size, so there's never a leftover
+      // gap (black bar) on one axis after the resize-drag handle changes
+      // the panel's actual pixel size
+      const paddedSpanX = spanX * (1 + 2 * PADDING_FRAC);
+      const paddedSpanY = spanY * (1 + 2 * PADDING_FRAC);
+
+      const scale = Math.min(width / paddedSpanX, height / paddedSpanY);
+      const offsetX = (width - spanX * scale) / 2;
+      const offsetY = (height - spanY * scale) / 2;
+
+      return (x, y) => ({
+        x: (x - minX) * scale + offsetX,
+        y: (y - minY) * scale + offsetY
+      });
+    }
+
+    /* ------------------ INTERACTION ------------------ */
+
+    // (re)applies activeRoute's coloring to whatever's currently in
+    // nodeEls/edgeEls - called after building a new route, after each step
+    // taken along one, and after every renderGraph() redraw (which wipes and
+    // recreates all the SVG elements those maps point to)
+    function applyRouteStyling() {
+      updateWalkButton();
+      edgeEls.forEach(el => el.classList.remove('route'));
+      nodeEls.forEach(el => el.classList.remove('route'));
+      if (!activeRoute) return;
+
+      const { nodeNames, edgeKeys, progress } = activeRoute;
+      for (let i = progress; i < edgeKeys.length; i++) {
+        const el = edgeEls.get(edgeKeys[i]);
+        if (el) el.classList.add('route');
+      }
+      // current position keeps the separate .highlighted style instead
+      for (let i = progress + 1; i < nodeNames.length; i++) {
+        const n = graphData.nodes.find(x => x.properties.name === nodeNames[i]);
+        const el = n && nodeEls.get(n.id);
+        if (el) el.classList.add('route');
+      }
+    }
+
+    // the single most recently traveled edge, independent of any active
+    // pathfinding route - moves to whichever edge you actually just crossed
+    // (any navigation: WASD, clicking a node/edge/marker, Ctrl+Z), and stays
+    // there until you cross a different one. Plain memory var, no history.
+    let lastTraveledEdgeKey = null;
+
+    function updateLastTraveledEdge(fromNodeId, toNodeId) {
+      if (fromNodeId === null || fromNodeId === toNodeId || !graphData) return;
+      const fromNode = graphData.nodes.find(n => n.id === fromNodeId);
+      const toNode = graphData.nodes.find(n => n.id === toNodeId);
+      if (!fromNode || !toNode || !fromNode.properties.name || !toNode.properties.name) return;
+      // only a real edge traversal counts - clicking a distant node's own
+      // circle jumps straight there without walking any edge
+      const isAdjacent = graphData.edges.some(e =>
+        (e.from === fromNodeId && e.to === toNodeId) || (e.from === toNodeId && e.to === fromNodeId));
+      if (!isAdjacent) return;
+
+      const key = [fromNode.properties.name, toNode.properties.name].sort().join('|||');
+      if (lastTraveledEdgeKey && lastTraveledEdgeKey !== key) {
+        const oldEl = edgeEls.get(lastTraveledEdgeKey);
+        if (oldEl) oldEl.classList.remove('traveled');
+      }
+      lastTraveledEdgeKey = key;
+      const newEl = edgeEls.get(key);
+      if (newEl) newEl.classList.add('traveled');
+    }
+
+    // re-applies lastTraveledEdgeKey's styling after a redraw wipes/recreates
+    // edgeEls' elements (e.g. a floor toggle) - same pattern as the
+    // .highlighted/.route reapplication in renderGraph's tail
+    function reapplyLastTraveledEdge() {
+      if (!lastTraveledEdgeKey) return;
+      const el = edgeEls.get(lastTraveledEdgeKey);
+      if (el) el.classList.add('traveled');
+    }
+
+    // advances activeRoute by one step if the node just arrived at is the
+    // next one on the planned route; finishes (clears) the route once its
+    // last node is reached. Stepping off-route (or with no active route)
+    // is a no-op - a stale highlighted route is harmless and gets replaced
+    // wholesale by the next successful pathfind anyway.
+    function advanceRouteProgress(nodeId) {
+      if (!activeRoute) return;
+      const node = graphData && graphData.nodes.find(n => n.id === nodeId);
+      if (!node || !node.properties.name) return;
+      const { nodeNames, progress } = activeRoute;
+      if (progress >= nodeNames.length - 1 || nodeNames[progress + 1] !== node.properties.name) return;
+      activeRoute.progress += 1;
+      if (activeRoute.progress >= nodeNames.length - 1) activeRoute = null; // arrived - nothing left to show
+    }
+
+    // Wszystko, co zmienia się po zmianie miejsca - wywoływane DOPIERO, gdy zdjęcie
+    // nowego miejsca jest już pokazane (patrz navigateTo).
+    function commitNavigation(nodeId, previousNodeId, opts = {}) {
+      if (previousNodeId !== null && previousNodeId !== nodeId && !opts.isUndo) {
+        navigationHistory.push(previousNodeId);
+      }
+
+      highlightedNodeId = nodeId;
+      shownPhotoNodeId = nodeId;
+      advanceRouteProgress(nodeId);
+      applyRouteStyling();
+      updateLastTraveledEdge(previousNodeId, nodeId);
+
+      // mini-map follows you to whatever floor the new current node is on
+      const node = graphData && graphData.nodes.find(n => n.id === nodeId);
+      const followLayer = node ? practicalLayerFor(node) : null;
+      if (followLayer !== null && followLayer !== selectedLayer) {
+        selectedLayer = followLayer;
+        renderLayerToggles(graphData);
+        renderGraph(graphData); // re-applies the highlight class itself, see below
+      } else {
+        nodeEls.forEach((el, id) => {
+          el.classList.toggle('highlighted', id === nodeId);
+        });
+      }
+
+      updateNeighborMarkers(nodeId);
+    }
+
+    // zachowana nazwa dla wszystkich dotychczasowych wywołań (klik, WASD, marker,
+    // cofnięcie...) - teraz asynchroniczna: stan zmienia się po pobraniu zdjęcia
+    function setHighlight(nodeId, opts = {}) {
+      return navigateTo(nodeId, opts).catch(console.error);
+    }
+
+
+    /* ------------------ AUTO WALK ------------------ */
+
+    // Autospacer: dla każdego kolejnego węzła trasy kamera płynnie obraca się w jego
+    // stronę (tak jak patrzyłby człowiek), chwila "namysłu", potem to samo przejście
+    // co po kliknięciu znacznika, a następnie krótka pauza (arrivePauseMs) po załadowaniu nowego węzła.
+    // Przerywa go każdy klik, dotyk, kółko myszy lub klawisz użytkownika w aplikacji
+    // (poza samym przyciskiem start/stop).
+    const WALK = {
+      turnDegPerSec: 70,     // spokojne obracanie głowy/ciała
+      turnMinMs: 450, turnMaxMs: 1800,
+      aimPauseMs: 350,       // chwila zanim "klikniemy"
+      arrivePauseMs: 400,    // po ZAKOŃCZENIU fade-in nowego węzła, przed ruszeniem dalej
+    };
+    let autoWalkRun = 0;      // numer bieżącego spaceru; 0 = brak
+    let autoWalkAnim = null;
+
+    const walkBtn = document.getElementById('walkBtn');
+    const sleepMs = ms => new Promise(r => setTimeout(r, ms));
+
+    function isAutoWalking() { return autoWalkRun !== 0; }
+
+    function updateWalkButton() {
+      walkBtn.hidden = !activeRoute && !isAutoWalking();
+      walkBtn.classList.toggle('on', isAutoWalking());
+      walkBtn.setAttribute('aria-pressed', String(isAutoWalking()));
+      walkBtn.textContent = isAutoWalking() ? '■ Zatrzymaj spacer' : '▶ Idź trasą automatycznie';
+    }
+
+    function stopAutoWalk(reason) {
+      if (!isAutoWalking()) return;
+      autoWalkRun = 0;
+      if (autoWalkAnim && autoWalkAnim.cancel) autoWalkAnim.cancel();
+      autoWalkAnim = null;
+      if (viewer && viewer.stopAnimation) viewer.stopAnimation();
+      updateWalkButton();
+      if (reason) document.getElementById('routeStatus').dataset.walk = reason;
+    }
+
+    async function startAutoWalk() {
+      if (!activeRoute || !graphData || !viewer || isAutoWalking()) return;
+      const run = ++autoWalkRun;
+      const route = activeRoute;
+      updateWalkButton();
+      const alive = () => autoWalkRun === run && activeRoute === route;
+      try {
+        while (alive()) {
+          const nextName = route.nodeNames[route.progress + 1];
+          const cur = graphData.nodes.find(n => n.id === highlightedNodeId);
+          const next = graphData.nodes.find(n => n.properties.name === nextName);
+          if (!cur || !next) break;
+
+          // 1) obrót kamery w stronę następnego węzła
+          const yaw = (bearingDeg(cur, next) + NORTH_OFFSET_DEG + 360) % 360;
+          const pitch = pitchDeg(cur, next);
+          const pos = viewer.getPosition();
+          let dYaw = Math.abs(((yaw - pos.yaw * 180 / Math.PI) % 360 + 540) % 360 - 180);
+          const turnMs = Math.min(WALK.turnMaxMs, Math.max(WALK.turnMinMs, dYaw / WALK.turnDegPerSec * 1000));
+          autoWalkAnim = viewer.animate({ yaw: `${yaw}deg`, pitch: `${pitch}deg`, speed: turnMs });
+          await Promise.race([new Promise(r => autoWalkAnim.then(r, r)), sleepMs(turnMs + 1500)]);
+          if (!alive()) break;
+
+          // 2) chwila namysłu i "kliknięcie" znacznika
+          await sleepMs(WALK.aimPauseMs);
+          if (!alive()) break;
+          await setHighlight(next.id);
+          if (!alive() || highlightedNodeId !== next.id) break;
+          await photoTransition; // dokończ fade-in nowego zdjęcia, dopiero potem odliczaj pauzę
+          if (!alive()) break;
+
+          // 3) krótka pauza po załadowaniu nowego węzła, potem dalej
+          await sleepMs(WALK.arrivePauseMs);
+          if (autoWalkRun === run && !activeRoute) break; // cel osiągnięty
+        }
+      } catch (err) {
+        console.error('autospacer:', err);
+      } finally {
+        if (autoWalkRun === run) { autoWalkRun = 0; autoWalkAnim = null; updateWalkButton(); }
+      }
+    }
+
+    walkBtn.addEventListener('click', () => { isAutoWalking() ? stopAutoWalk('stop') : startAutoWalk(); });
+    // przerwanie przez użytkownika: faza przechwytywania, żeby nic nie zdążyło go ominąć
+    ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(type =>
+      document.addEventListener(type, e => {
+        if (!isAutoWalking() || !e.isTrusted) return;
+        // sam przycisk start/stop obsługuje własny klik; po kliknięciu to on ma fokus,
+        // więc inne klawisze (nie Enter/Spacja) też liczą się jako przerwanie
+        if (e.target === walkBtn && (type === 'pointerdown' || type === 'touchstart' || e.key === 'Enter' || e.key === ' ')) return;
+        stopAutoWalk('user');
+      }, true));
+
+    /* ------------------ RENDER ------------------ */
+
+    function renderLayerToggles(graph) {
+      const container = document.getElementById('layerToggles');
+      container.innerHTML = '';
+      const layers = [...new Set(graph.nodes.map(practicalLayerFor))].sort((a, b) => Number(a) - Number(b));
+      layers.forEach(floor => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.classList.add('layer-btn');
+        btn.classList.toggle('active', floor === selectedLayer);
+        btn.textContent = FLOOR_LABELS[floor] || floor;
+        btn.addEventListener('click', () => {
+          selectedLayer = floor;
+          renderLayerToggles(graph);
+          renderGraph(graphData);
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    function renderGraph(graph) {
+      const svg = document.getElementById('map');
+      const { width, height } = svg.getBoundingClientRect();
+
+      if (!mapViewBox) mapViewBox = { x: 0, y: 0, w: width, h: height };
+      svg.setAttribute('viewBox', `${mapViewBox.x} ${mapViewBox.y} ${mapViewBox.w} ${mapViewBox.h}`);
+      svg.innerHTML = `
+        <defs>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+      `;
+
+      const toScreen = computeTransform(graph.nodes, width, height);
+      const edges = normalizeEdges(graph.edges);
+
+      // static satellite backdrop, drawn first so nodes/edges/labels sit on top
+      if (satelliteOverlayBounds) {
+        const topLeft = toScreen(satelliteOverlayBounds.x_min, satelliteOverlayBounds.y_min);
+        const bottomRight = toScreen(satelliteOverlayBounds.x_max, satelliteOverlayBounds.y_max);
+        const img = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        img.setAttribute('href', '/img/satellite_overlay.jpg');
+        img.setAttribute('x', topLeft.x);
+        img.setAttribute('y', topLeft.y);
+        img.setAttribute('width', bottomRight.x - topLeft.x);
+        img.setAttribute('height', bottomRight.y - topLeft.y);
+        img.setAttribute('opacity', '0.75');
+        img.setAttribute('preserveAspectRatio', 'none');
+        svg.appendChild(img);
+      }
+
+      // exclusive floor selection: nodes on selectedLayer render full opacity;
+      // nodes elsewhere that connect directly to one of them render at 50%
+      // (context for where stairs/elevators lead); everything else is hidden
+      const onFloorIds = new Set(graph.nodes.filter(n => practicalLayerFor(n) === selectedLayer).map(n => n.id));
+      const adjacentIds = new Set();
+      edges.forEach(e => {
+        if (onFloorIds.has(e.a) && !onFloorIds.has(e.b)) adjacentIds.add(e.b);
+        if (onFloorIds.has(e.b) && !onFloorIds.has(e.a)) adjacentIds.add(e.a);
+      });
+
+      // don't let dimmed adjacent-floor markers overlap each other or the
+      // real on-floor nodes - e.g. an elevator shaft's stops (Winda21-24)
+      // sit within centimeters of each other in x/y since only z differs,
+      // so their raw screen position is nearly identical. Rather than
+      // hiding whichever one loses that collision, nudge it outward to the
+      // nearest free spot nearby (on-floor nodes always keep their exact
+      // real position; adjacent nodes are considered in node order,
+      // first-come-first-served, so earlier ones don't get bumped by later
+      // ones landing on top of them).
+      const MIN_NODE_SPACING_PX = 12; // ~3x the 4px node radius
+      const placedPositions = graph.nodes
+        .filter(n => onFloorIds.has(n.id))
+        .map(n => toScreen(n.properties.x, n.properties.y));
+
+      function findFreePosition(pos) {
+        const isFree = p => !placedPositions.some(q => Math.hypot(q.x - p.x, q.y - p.y) < MIN_NODE_SPACING_PX);
+        if (isFree(pos)) return pos;
+        const ringAttempts = 12;
+        for (let ring = 1; ring <= 3; ring++) {
+          const radius = MIN_NODE_SPACING_PX * 1.3 * ring;
+          for (let i = 0; i < ringAttempts; i++) {
+            const angle = (i / ringAttempts) * 2 * Math.PI;
+            const candidate = { x: pos.x + Math.cos(angle) * radius, y: pos.y + Math.sin(angle) * radius };
+            if (isFree(candidate)) return candidate;
+          }
+        }
+        return pos; // heavily crowded fallback - keep the original spot rather than searching forever
+      }
+
+      // nodeId -> {x,y} final (possibly nudged) screen position, for every
+      // adjacent-floor node - unlike the old culling logic, every adjacent
+      // node is now always shown
+      const adjacentPositions = new Map();
+      graph.nodes.forEach(n => {
+        if (!adjacentIds.has(n.id)) return;
+        const finalPos = findFreePosition(toScreen(n.properties.x, n.properties.y));
+        adjacentPositions.set(n.id, finalPos);
+        placedPositions.push(finalPos);
+      });
+
+      // edges
+      edges.forEach(edge => {
+        const na = graph.nodes.find(n => n.id === edge.a);
+        const nb = graph.nodes.find(n => n.id === edge.b);
+        if (!na || !nb) return;
+        const aOn = onFloorIds.has(edge.a), bOn = onFloorIds.has(edge.b);
+        if (!aOn && !bOn) return;
+        if (!aOn && !adjacentPositions.has(edge.a)) return; // neither on the current floor nor adjacent to it
+        if (!bOn && !adjacentPositions.has(edge.b)) return;
+
+        // an adjacent endpoint uses its (possibly nudged) marker position,
+        // so the line still visibly connects to wherever the marker ended up
+        const pa = aOn ? toScreen(na.properties.x, na.properties.y) : adjacentPositions.get(edge.a);
+        const pb = bOn ? toScreen(nb.properties.x, nb.properties.y) : adjacentPositions.get(edge.b);
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', pa.x);
+        line.setAttribute('y1', pa.y);
+        line.setAttribute('x2', pb.x);
+        line.setAttribute('y2', pb.y);
+        line.classList.add('edge');
+        line.setAttribute('opacity', aOn && bOn ? '1' : '0.5');
+
+        line.addEventListener('click', () => {
+          if (mapDragMoved) return; // a drag-to-pan gesture just ended here, not a real click
+          if (highlightedNodeId === null) return;
+
+          let target = null;
+
+          if (edge.bidirectional) {
+            if (highlightedNodeId === edge.a) target = edge.b;
+            else if (highlightedNodeId === edge.b) target = edge.a;
+          } else {
+            // one-way: allow only a -> b (based on canonical ordering used in normalizeEdges)
+            if (highlightedNodeId === edge.a) target = edge.b;
+          }
+
+          if (!target) return;
+
+          setHighlight(target);
+          flashEdge(line);
+        });
+
+        svg.appendChild(line);
+
+        if (na.properties.name && nb.properties.name) {
+          const nameKey = [na.properties.name, nb.properties.name].sort().join('|||');
+          edgeEls.set(nameKey, line);
+        }
+      });
+
+      // nodes
+      graph.nodes.forEach(node => {
+        const onFloor = onFloorIds.has(node.id);
+        const adjacent = adjacentPositions.has(node.id);
+        if (!onFloor && !adjacent) return;
+        const { x, y } = onFloor ? toScreen(node.properties.x, node.properties.y) : adjacentPositions.get(node.id);
+
+        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        group.classList.add('node-group');
+        // adjacent-floor markers stay noticeably dimmer than on-floor ones,
+        // but not so faint they vanish against the satellite photo underneath
+        group.setAttribute('opacity', onFloor ? '1' : '0.7');
+
+        const nameLower = (node.properties.name || '').toLowerCase();
+        const typeClass = nameLower.includes('schod') ? 'stairs' : nameLower.includes('winda') ? 'elevator' : null;
+
+        let marker;
+        if (onFloor) {
+          marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          marker.setAttribute('cx', x);
+          marker.setAttribute('cy', y);
+          marker.setAttribute('r', 4);
+        } else {
+          // every adjacent node is on some *other* floor than the one shown -
+          // an arrow toward where it actually leads (up/down) reads faster
+          // than a plain dot, and doubles as a second visual cue telling
+          // apart markers that landed close together after nudging
+          const refZ = Number(selectedLayer) * METERS_PER_LEVEL;
+          const pointsUp = node.properties.z > refZ;
+          const r = 6;
+          const tipY = pointsUp ? y - r : y + r;
+          const baseY = pointsUp ? y + r * 0.6 : y - r * 0.6;
+          const halfWidth = r * 0.9;
+          marker = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+          marker.setAttribute('points', `${x},${tipY} ${x - halfWidth},${baseY} ${x + halfWidth},${baseY}`);
+        }
+        marker.classList.add('node');
+        if (typeClass) marker.classList.add(typeClass);
+
+        marker.addEventListener('click', () => {
+          if (mapDragMoved) return; // a drag-to-pan gesture just ended here, not a real click
+          setHighlight(node.id);
+        });
+
+        // name only shows on hover (see .node-group text CSS) - the halo
+        // (paint-order stroke) keeps it legible over both the map and any
+        // future satellite imagery underneath
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', x + 8);
+        label.setAttribute('y', y + 3);
+        label.textContent = node.properties.name || node.id;
+
+        group.append(marker, label);
+        svg.append(group);
+        nodeEls.set(node.id, marker);
+      });
+
+      // re-apply highlight/route state since redraws (e.g. layer toggles)
+      // wipe and recreate every element
+      if (highlightedNodeId !== null) {
+        nodeEls.forEach((el, id) => el.classList.toggle('highlighted', id === highlightedNodeId));
+      }
+      applyRouteStyling();
+      reapplyLastTraveledEdge();
+    }
+
+    /* ------------------ SEARCH ------------------ */
+
+    // wyszukiwarka nad nazwami węzłów i miejscami z ich opisów (poiSearch.mjs);
+    // budowana po załadowaniu grafu
+    let searcher = null;
+    let currentResultNodes = []; // węzły z bieżących wyników wyszukiwania (każdy raz)
+    const ROUTE_BTN_DEFAULT = 'Znajdź trasę';
+    const ROUTE_BTN_NEAREST = 'Znajdź trasę do najbliższego z proponowanych miejsc';
+
+    function floorLabelOf(node) {
+      const floor = practicalLayerFor(node);
+      return FLOOR_LABELS[floor] || `Poziom ${floor}`;
+    }
+
+    // Wyniki są pogrupowane po węźle: jeden węzeł = jedna pozycja, a pod jego nazwą
+    // wszystkie dopasowane miejsca z opisu (np. "Sala 411", "Sala 412").
+    function resultsByNode(query) {
+      const byNode = new Map();
+      searcher(query, 40).forEach(group => {
+        group.nodes.forEach(n => {
+          let r = byNode.get(n.id);
+          if (!r) { r = { id: n.id, name: n.name, places: [] }; byNode.set(n.id, r); }
+          if (group.label !== n.name && !r.places.includes(group.label)) r.places.push(group.label);
+        });
+      });
+      return [...byNode.values()];
+    }
+
+    // Przycisk trasy: gdy w wynikach jest kilka węzłów i żaden nie jest wybrany,
+    // prowadzi do najlepszego z nich; w pozostałych przypadkach zwykły opis.
+    function updateRouteButton() {
+      const btn = document.getElementById('routeBtn');
+      const nearestMode = selectedDestinationId === null && currentResultNodes.length > 1;
+      btn.textContent = nearestMode ? ROUTE_BTN_NEAREST : ROUTE_BTN_DEFAULT;
+    }
+
+    function renderSearchResults(query) {
+      const box = document.getElementById('searchResults');
+      box.innerHTML = '';
+      currentResultNodes = [];
+      if (!graphData || !searcher || !query || !query.trim()) { updateRouteButton(); return; }
+
+      const results = resultsByNode(query);
+      currentResultNodes = results;
+      if (!results.length) {
+        const empty = document.createElement('div');
+        empty.className = 'res-empty';
+        empty.textContent = 'Brak wyników';
+        box.appendChild(empty);
+        updateRouteButton();
+        return;
+      }
+      // jedyny pasujący węzeł jest od razu celem
+      if (results.length === 1) selectedDestinationId = results[0].id;
+
+      results.forEach(r => {
+        const node = graphData.nodes.find(x => x.id === r.id);
+        const row = document.createElement('div');
+        row.className = 'res';
+        row.classList.toggle('selected', r.id === selectedDestinationId);
+        const label = document.createElement('span');
+        label.className = 'res-label';
+        label.textContent = r.name;
+        if (results.length > 1 && node) {
+          const sub = document.createElement('span');
+          sub.className = 'res-sub';
+          sub.textContent = floorLabelOf(node);
+          label.append(' · ', sub);
+        }
+        r.places.forEach(place => {
+          const poi = document.createElement('span');
+          poi.className = 'res-poi';
+          poi.textContent = place;
+          label.appendChild(poi);
+        });
+        row.appendChild(label);
+        row.addEventListener('click', () => {
+          selectedDestinationId = selectedDestinationId === r.id && results.length > 1 ? null : r.id;
+          renderSearchResults(query);
+        });
+        box.appendChild(row);
+      });
+      updateRouteButton();
+    }
+
+    document.getElementById('searchInput').addEventListener('input', e => {
+      selectedDestinationId = null;
+      renderSearchResults(e.target.value);
+    });
+
+    // shapes #mapPanel's aspect ratio to match the real geographic footprint
+    // of the graph (spanX:spanY in meters, same bounding box computeTransform
+    // uses) so the panel has no wasted letterbox space around the content -
+    // called once at boot when real node data first loads
+    function applyMapPanelShape(nodes) {
+      const xs = nodes.map(n => n.properties.x);
+      const ys = nodes.map(n => n.properties.y);
+      const spanX = Math.max(...xs) - Math.min(...xs) || 1;
+      const spanY = Math.max(...ys) - Math.min(...ys) || 1;
+      const panel = document.getElementById('mapPanel');
+      panel.style.aspectRatio = `${spanX} / ${spanY * MAP_PANEL_HEIGHT_FACTOR}`;
+      panel.style.width = `${MAP_PANEL_MIN_WIDTH}px`; // starts as small as the resize handle allows - drag to grow
+    }
+
+    // drag the corner handle (or the top/right edge indicators) to resize
+    // the whole panel on the page (locked to its aspect-ratio, so this is a
+    // pure uniform scale) - independent of the wheel-zoom below, which
+    // zooms the content inside the panel without changing the panel's own
+    // footprint on the page. The panel is anchored bottom-left (left+bottom
+    // in CSS), so changing only its width is enough - aspect-ratio grows
+    // the height upward to match, which is exactly a top-right-corner
+    // resize with no extra positioning math needed.
+    (function setupMapPanelResize() {
+      const panel = document.getElementById('mapPanel');
+      const MIN_WIDTH = MAP_PANEL_MIN_WIDTH, MAX_WIDTH = MAP_PANEL_MAX_WIDTH;
+
+      function attachResizeDrag(el) {
+        el.addEventListener('pointerdown', e => {
+          e.preventDefault();
+          const startX = e.clientX, startY = e.clientY;
+          const startWidth = panel.getBoundingClientRect().width;
+          el.setPointerCapture(e.pointerId);
+
+          function onMove(ev) {
+            // dragging toward the upper-right (dx>0, dy<0) grows the panel;
+            // toward the lower-left shrinks it - matches a natural corner drag,
+            // and works the same way from the edge strips (only one of dx/dy
+            // matters much there, but the formula is harmless either way)
+            const delta = (ev.clientX - startX) - (ev.clientY - startY);
+            const newWidth = Math.min(Math.max(startWidth + delta, MIN_WIDTH), MAX_WIDTH);
+            panel.style.width = `${newWidth}px`;
+          }
+          function onUp(ev) {
+            el.releasePointerCapture(ev.pointerId);
+            el.removeEventListener('pointermove', onMove);
+            el.removeEventListener('pointerup', onUp);
+            // the drag itself was pure CSS scaling (cheap, smooth) - but
+            // mapViewBox/computeTransform are keyed to the panel's pixel size
+            // at the time they were last computed, so without this a later
+            // unrelated re-render (e.g. a floor toggle) would frame the new,
+            // resized content using the old, now-mismatched viewBox. Resetting
+            // here re-syncs everything to the new size in one clean render,
+            // fresh full-fit view included.
+            mapViewBox = null;
+            if (graphData) renderGraph(graphData);
+          }
+          el.addEventListener('pointermove', onMove);
+          el.addEventListener('pointerup', onUp);
+        });
+      }
+
+      ['mapResizeHandle', 'mapResizeEdgeTop', 'mapResizeEdgeRight'].forEach(id => {
+        attachResizeDrag(document.getElementById(id));
+      });
+    })();
+
+    // keeps a viewBox's x/y from panning past the content's own bounds -
+    // rect.width/height is the full-map-fit size (same bounds the wheel
+    // zoom's max-zoom-out cap already uses), so [0, rect.width - vb.w] is
+    // exactly the range that keeps the view within the map, never revealing
+    // empty space beyond it
+    function clampMapViewBox(vb, rect) {
+      const maxX = Math.max(0, rect.width - vb.w);
+      const maxY = Math.max(0, rect.height - vb.h);
+      return {
+        x: Math.min(Math.max(vb.x, 0), maxX),
+        y: Math.min(Math.max(vb.y, 0), maxY),
+        w: vb.w,
+        h: vb.h,
+      };
+    }
+
+    // scroll to zoom the mini-map, centered on the cursor
+    document.getElementById('map').addEventListener('wheel', e => {
+      e.preventDefault();
+      if (!mapViewBox) return;
+      const svg = document.getElementById('map');
+      const rect = svg.getBoundingClientRect();
+      const factor = e.deltaY > 0 ? 1.15 : 1 / 1.15;
+
+      const cx = mapViewBox.x + (e.clientX - rect.left) / rect.width * mapViewBox.w;
+      const cy = mapViewBox.y + (e.clientY - rect.top) / rect.height * mapViewBox.h;
+
+      // rect.width is also the full-map-fit viewBox width (mapViewBox starts
+      // out equal to it) - capping zoom-out there means you can never scroll
+      // past "the whole map, centered" into empty space around it
+      const minW = rect.width * 0.05, maxW = rect.width;
+      const newW = Math.min(Math.max(mapViewBox.w * factor, minW), maxW);
+      const newH = newW * (mapViewBox.h / mapViewBox.w); // preserve aspect ratio
+      const actualFactor = newW / mapViewBox.w;
+
+      // at full zoom-out, snap back to exactly the original centered
+      // full-map view instead of wherever cursor-centered zooming landed -
+      // otherwise you could hit the width cap while still panned off-center
+      if (newW >= maxW) {
+        mapViewBox = { x: 0, y: 0, w: rect.width, h: rect.height };
+      } else {
+        mapViewBox = clampMapViewBox({
+          x: cx - (cx - mapViewBox.x) * actualFactor,
+          y: cy - (cy - mapViewBox.y) * actualFactor,
+          w: newW,
+          h: newH,
+        }, rect);
+      }
+      svg.setAttribute('viewBox', `${mapViewBox.x} ${mapViewBox.y} ${mapViewBox.w} ${mapViewBox.h}`);
+    }, { passive: false });
+
+    // drag-to-pan the 2D map. mapDragMoved gates the click handlers on
+    // nodes/edges so a pan gesture ending over one doesn't also navigate.
+    (function setupMapDragPan() {
+      const svg = document.getElementById('map');
+      let dragging = false;
+      let start = null; // {x,y} screen coords at pointerdown
+      let startViewBox = null;
+      const DRAG_THRESHOLD_PX = 4;
+
+      svg.addEventListener('pointerdown', e => {
+        if (e.button !== 0 || !mapViewBox) return;
+        dragging = true;
+        mapDragMoved = false;
+        start = { x: e.clientX, y: e.clientY };
+        startViewBox = { ...mapViewBox };
+        // pointer capture is deliberately NOT taken here yet - see pointermove
+      });
+
+      svg.addEventListener('pointermove', e => {
+        if (!dragging) return;
+        const dxScreen = e.clientX - start.x;
+        const dyScreen = e.clientY - start.y;
+        if (!mapDragMoved && Math.hypot(dxScreen, dyScreen) > DRAG_THRESHOLD_PX) {
+          mapDragMoved = true;
+          // only capture once real movement confirms this is a drag, not a
+          // click - capturing eagerly on every pointerdown redirected the
+          // *click* event to the svg itself (browsers route click through
+          // whichever element holds pointer capture), which meant a plain
+          // click on a node/edge never reached that element's own handler
+          // at all - this broke click-to-navigate entirely
+          svg.setPointerCapture(e.pointerId);
+        }
+        if (!mapDragMoved) return;
+
+        const rect = svg.getBoundingClientRect();
+        const dxViewBox = dxScreen / rect.width * startViewBox.w;
+        const dyViewBox = dyScreen / rect.height * startViewBox.h;
+        // drag right -> content follows the cursor right -> the viewBox
+        // window itself moves left (subtract), revealing more on the right -
+        // clamped so you can't drag past the map's own edges into empty space
+        mapViewBox = clampMapViewBox({
+          x: startViewBox.x - dxViewBox,
+          y: startViewBox.y - dyViewBox,
+          w: startViewBox.w,
+          h: startViewBox.h,
+        }, rect);
+        svg.setAttribute('viewBox', `${mapViewBox.x} ${mapViewBox.y} ${mapViewBox.w} ${mapViewBox.h}`);
+      });
+
+      function endDrag(e) {
+        if (!dragging) return;
+        dragging = false;
+        if (svg.hasPointerCapture(e.pointerId)) svg.releasePointerCapture(e.pointerId);
+        // let the resulting click event (if any) see mapDragMoved this tick,
+        // then clear it so a later, genuine click isn't wrongly suppressed
+        setTimeout(() => { mapDragMoved = false; }, 0);
+      }
+      svg.addEventListener('pointerup', endDrag);
+      svg.addEventListener('pointercancel', endDrag);
+    })();
+
+    document.getElementById('mapPanel').addEventListener('mouseenter', () => { mouseOverMap = true; });
+    document.getElementById('mapPanel').addEventListener('mouseleave', () => { mouseOverMap = false; });
+
+    // WASD pans the 2D map (repeatable while held) instead of stepping the
+    // 360 view, while the mouse is over the map panel - Q/E are unaffected,
+    // there's no "up/down" for a top-down 2D map to point-track toward.
+    const MAP_PAN_STEP_FRAC = 0.08; // fraction of the current view moved per press
+    function panMapByKey(key) {
+      if (!mapViewBox) return;
+      const svg = document.getElementById('map');
+      const dx = key === 'd' ? mapViewBox.w * MAP_PAN_STEP_FRAC : key === 'a' ? -mapViewBox.w * MAP_PAN_STEP_FRAC : 0;
+      const dy = key === 's' ? mapViewBox.h * MAP_PAN_STEP_FRAC : key === 'w' ? -mapViewBox.h * MAP_PAN_STEP_FRAC : 0;
+      mapViewBox = clampMapViewBox(
+        { x: mapViewBox.x + dx, y: mapViewBox.y + dy, w: mapViewBox.w, h: mapViewBox.h },
+        svg.getBoundingClientRect()
+      );
+      svg.setAttribute('viewBox', `${mapViewBox.x} ${mapViewBox.y} ${mapViewBox.w} ${mapViewBox.h}`);
+    }
+
+    /* ------------------ ACCESSIBILITY FLAGS ------------------ */
+
+    function loadFlags() {
+      try {
+        return JSON.parse(localStorage.getItem('wm_flags')) || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function renderFlags() {
+      const container = document.getElementById('flags');
+      const saved = loadFlags();
+      container.innerHTML = '';
+      Object.entries(USER_CLASS_LABELS).forEach(([code, label]) => {
+        const id = `flag_${code}`;
+        const wrapper = document.createElement('label');
+        wrapper.setAttribute('for', id);
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = id;
+        checkbox.checked = !!saved[code];
+        checkbox.addEventListener('change', () => {
+          const flags = loadFlags();
+          flags[code] = checkbox.checked;
+          localStorage.setItem('wm_flags', JSON.stringify(flags));
+        });
+        wrapper.appendChild(checkbox);
+        wrapper.append(label);
+        container.appendChild(wrapper);
+      });
+    }
+
+    /* ------------------ PATHFINDING ------------------ */
+
+    async function findRoute() {
+      const status = document.getElementById('routeStatus');
+      if (highlightedNodeId === null) {
+        status.textContent = 'Najpierw wybierz punkt startowy na mapie.';
+        return;
+      }
+      if (selectedDestinationId === null) {
+        // kilka propozycji bez wyboru: trasa do najlepszego (najtańszego) z nich
+        if (currentResultNodes.length > 1) {
+          await requestRoute(currentResultNodes.map(n => n.name), { label: document.getElementById('searchInput').value.trim() });
+          return;
+        }
+        status.textContent = 'Wybierz cel z listy wyszukiwania.';
+        return;
+      }
+      const toNode = graphData.nodes.find(n => n.id === selectedDestinationId);
+      if (!toNode) return;
+      await requestRoute([toNode.properties.name]);
+    }
+
+    // targetNames: jeden cel albo kilka równoważnych (np. wszystkie "Łazienka
+    // Damska") - dla kilku serwer zwraca trasę do najtańszego z nich
+    async function requestRoute(targetNames, { label = null } = {}) {
+      const status = document.getElementById('routeStatus');
+      if (highlightedNodeId === null) {
+        status.textContent = 'Najpierw wybierz punkt startowy na mapie.';
+        return;
+      }
+      const fromNode = graphData.nodes.find(n => n.id === highlightedNodeId);
+      if (!fromNode) return;
+
+      status.textContent = 'Liczenie trasy...';
+      // a fresh pathfind always wipes any previous route entirely, even if
+      // the request below fails or is still in flight
+      stopAutoWalk();
+      activeRoute = null;
+      applyRouteStyling();
+
+      try {
+        const res = await fetch('/api/path', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: fromNode.properties.name,
+            to: targetNames.length === 1 ? targetNames[0] : targetNames,
+            flags: loadFlags(),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          status.textContent = `Błąd: ${data.error || res.status}`;
+          return;
+        }
+
+        if (data.alreadyThere) {
+          status.textContent = label
+            ? `Jesteś już przy: ${label} (${data.target}).`
+            : 'Jesteś już w tym miejscu.';
+          return;
+        }
+
+        const targetNode = graphData.nodes.find(n => n.properties.name === data.target);
+        if (targetNode) {
+          selectedDestinationId = targetNode.id;
+          renderSearchResults(document.getElementById('searchInput').value);
+        }
+
+        const edgeKeys = [];
+        for (let i = 0; i + 1 < data.path.length; i++) {
+          edgeKeys.push([data.path[i], data.path[i + 1]].sort().join('|||'));
+        }
+        activeRoute = { nodeNames: data.path, edgeKeys, progress: 0 };
+        applyRouteStyling();
+
+        const nearestNote = data.candidates > 1
+          ? ` (najbliższa z ${data.candidates}${label ? `: ${label}` : ''})`
+          : '';
+        status.textContent =
+          `${fromNode.properties.name} -> ${data.target}${nearestNote}\n` +
+          `${data.path.length} punktów, dystans ${data.totalDistance.toFixed(1)} m, koszt ${data.totalCost.toFixed(3)}`;
+      } catch (err) {
+        status.textContent = `Błąd: ${err.message}`;
+      }
+    }
+
+    document.getElementById('routeBtn').addEventListener('click', findRoute);
+
+    document.getElementById('minimizeBtn').addEventListener('click', () => {
+      const controls = document.getElementById('controls');
+      const minimized = controls.classList.toggle('minimized');
+      document.getElementById('minimizeBtn').textContent = minimized ? '▢' : '_';
+    });
+
+    // Ctrl+Z steps back through navigation history, one node at a time
+    window.addEventListener('keydown', e => {
+      if (!e.ctrlKey || e.key.toLowerCase() !== 'z') return;
+      if (navigationHistory.length === 0) return;
+      e.preventDefault();
+      const previousNodeId = navigationHistory.pop();
+      setHighlight(previousNodeId, { isUndo: true }); // cofnięcie nie wkłada się z powrotem na stos
+    });
+
+    // WASD/QE: step to a neighbor in the direction relative to where the
+    // viewer is currently looking, not absolute compass direction - so
+    // turning the camera changes what "forward" means, like a first-person
+    // walk. W=forward D=right S=backward A=left (offsets from current yaw),
+    // Q=up E=down (picks the neighbor with the biggest elevation change in
+    // that direction instead, since "direction" doesn't mean much vertically).
+    function circDiff(a, b) {
+      return ((a - b + 180) % 360 + 360) % 360 - 180;
+    }
+
+    function currentNeighbors() {
+      if (highlightedNodeId === null || !graphData) return [];
+      const current = graphData.nodes.find(n => n.id === highlightedNodeId);
+      if (!current) return [];
+      const neighborIds = new Set();
+      graphData.edges.forEach(e => {
+        if (e.from === highlightedNodeId) neighborIds.add(e.to);
+        else if (e.to === highlightedNodeId) neighborIds.add(e.from);
+      });
+      return [...neighborIds]
+        .map(id => graphData.nodes.find(n => n.id === id))
+        .filter(n => n && n.properties.name)
+        .map(neighbor => ({
+          id: neighbor.id,
+          yaw: (bearingDeg(current, neighbor) + NORTH_OFFSET_DEG + 360) % 360,
+          dz: neighbor.properties.z - current.properties.z,
+        }));
+    }
+
+    const WASD_YAW_OFFSET = { w: 0, d: 90, s: 180, a: -90 };
+    const YAW_MATCH_THRESHOLD_DEG = 55; // grace beyond a 45deg quadrant boundary for aim/measurement noise
+    const VERTICAL_DZ_THRESHOLD_M = 0.3; // ignore near-flat edges when picking a q/e target
+
+    function stepDirection(key) {
+      const neighbors = currentNeighbors();
+      if (!neighbors.length) return;
+
+      if (key === 'q' || key === 'e') {
+        const matches = neighbors.filter(n => key === 'q' ? n.dz > VERTICAL_DZ_THRESHOLD_M : n.dz < -VERTICAL_DZ_THRESHOLD_M);
+        if (!matches.length) return;
+        matches.sort((a, b) => Math.abs(b.dz) - Math.abs(a.dz)); // most direct stair/lift if more than one exists
+        setHighlight(matches[0].id, { trackDirection: false });
+        return;
+      }
+
+      const offset = WASD_YAW_OFFSET[key];
+      if (offset === undefined) return;
+      const currentYaw = (viewer.getPosition().yaw * 180 / Math.PI + 360) % 360;
+      const targetYaw = (currentYaw + offset + 360) % 360;
+
+      let best = null;
+      neighbors.forEach(n => {
+        const diff = Math.abs(circDiff(n.yaw, targetYaw));
+        if (best === null || diff < best.diff) best = { id: n.id, diff };
+      });
+      if (best && best.diff <= YAW_MATCH_THRESHOLD_DEG) {
+        setHighlight(best.id);
+      }
+    }
+
+    window.addEventListener('keydown', e => {
+      const key = e.key.toLowerCase();
+      if (!'wasdqe'.includes(key)) return;
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      const active = document.activeElement;
+      const tag = active && active.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (active && active.isContentEditable)) return;
+
+      if (mouseOverMap && 'wasd'.includes(key)) {
+        e.preventDefault();
+        panMapByKey(key); // continuous panning while held feels natural, unlike the discrete 360 step below
+        return;
+      }
+      if (e.repeat) return; // 360 stepping is a discrete jump per press, not a hold-to-repeat action
+      stepDirection(key);
+    });
+
+    /* ------------------ BOOT ------------------ */
+
+    initViewer();
+    renderFlags();
+    document.getElementById('minimizeBtn').click(); // start collapsed
+
+    Promise.all([safeFetch('/api/graph'), safeFetch('/api/config').catch(() => ({ ipfsGateways: [] }))])
+      .then(async ([graph, config]) => {
+        ipfsGateways = config.ipfsGateways || [];
+        graphData = graph;
+        searcher = createSearcher(graph.nodes, Fuse);
+        applyMapPanelShape(graph.nodes);
+        renderLayerToggles(graph);
+        renderGraph(graph);
+
+        photoCache = new PhotoCache({
+          gateways: ipfsGateways,
+          localUrl: item => `/photos/${encodeURIComponent(item.name)}.jpg`,
+          onChange: updateCacheStatus,
+          maxBackground: navigator.connection && navigator.connection.saveData ? 1 : 3,
+        });
+        photoCache.register(graph.nodes);
+        await photoCache.init();
+        window.__debug.photoCache = photoCache;
+
+        // auto-select the starting node at load (same code path as a click)
+        const startNode = graph.nodes.find(n => n.properties.name === INITIAL_NODE_NAME);
+        setHighlight(startNode ? startNode.id : graph.nodes[0].id);
+      })
+      .catch(console.error);
+
+    // static satellite backdrop metadata - may resolve before or after the
+    // graph fetch above, so re-render here too in case the graph is already up
+    safeFetch('/img/satellite_overlay.json')
+      .then(bounds => {
+        satelliteOverlayBounds = bounds;
+        if (graphData) renderGraph(graphData);
+      })
+      .catch(console.error);
+
+    window.__debug = { startAutoWalk, isAutoWalking, getActiveRoute: () => activeRoute, getGraphData: () => graphData, setHighlight, viewer: () => viewer, practicalLayerFor, getHighlighted: () => highlightedNodeId };
+
+  </script>
+</body>
+</html>
