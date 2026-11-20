@@ -1,5 +1,9 @@
 node_modules/
 .env
 *.log
-photos_360/
-data/migration.cypher
+__pycache__/
+tools/photos_360/
+tools/photos_360_ipfs/
+tools/photos_360_upload/
+tools/_test_images/
+tools/_analysis/

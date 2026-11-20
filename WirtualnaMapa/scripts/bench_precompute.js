@@ -1,6 +1,6 @@
 // bench_precompute.js - czas liczenia kosztów krawędzi dla jednego profilu (U1):
 // wersja bez prekomputacji (pełny rachunek przy każdej krawędzi) i z podziałem na części
-// zależne od profilu i od krawędzi (5.4 pracy). Użycie: GRAPH_JSON=data/graph_export.json node scripts/bench_precompute.js
+// zależne od profilu i od krawędzi (5.5 pracy). Użycie: GRAPH_JSON=../tools/graph_export.json node scripts/bench_precompute.js
 require('dotenv').config({ quiet: true });
 const RiskModel = require('../src/libs/riskModel');
 const { fetchGraph } = require('../src/api/graph/graph.service');
@@ -21,9 +21,9 @@ const REP = 2000;
   const prepared = bench(() => { const sv = m.prepareUser(u); for (const e of pre) sink += m.costPrepared(e, sv); });
 
   const n = edges.length;
-  // operacje: iloczyny (9x7 przy s, s*h i s*b) i wartości funkcji phi (tylko dla niezerowych h_i, b_i)
+  // operacje: iloczyny M_ij*u_j (9x7 przy przygotowaniu profilu) i wartości funkcji ryzyka F (po jednej dla niezerowych h_i, b_i)
   const nnz = pre.reduce((a, e) => a + e.h.filter(x => x > 0).length + e.b.filter(x => x > 0).length, 0);
-  const multFull = n * 9 * 7 + 2 * nnz, multPre = 9 * 7 + 2 * nnz;
+  const multFull = n * 9 * 7 + nnz, multPre = 9 * 7 + nnz;
   console.log(JSON.stringify({
     krawedzie: n,
     bezPrekomputacji_ms: +full.toFixed(4), zPrekomputacja_ms: +prepared.toFixed(4), przyspieszenie: +(full / prepared).toFixed(1),

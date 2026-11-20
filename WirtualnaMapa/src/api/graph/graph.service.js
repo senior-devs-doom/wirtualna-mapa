@@ -15,7 +15,7 @@ function normalizeProps(props) {
   return out;
 }
 
-// Źródło plikowe (data/graph_export.json): te same węzły i krawędzie co w bazie,
+// Źródło plikowe (tools/graph_export.json): te same węzły i krawędzie co w bazie,
 // bez uruchamiania Neo4j - do powtarzalnych obliczeń i testów (GRAPH_JSON=ścieżka).
 function loadGraphFromFile(file) {
   const data = JSON.parse(fs.readFileSync(file, 'utf8'));

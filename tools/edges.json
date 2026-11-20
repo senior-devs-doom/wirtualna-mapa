@@ -1,0 +1,590 @@
+[
+  {
+    "from": "Schody Zachodnie 2",
+    "to": "Schody Zachodnie 3",
+    "preset": "stairs",
+    "L": 3.5016217185787055
+  },
+  {
+    "from": "Schody Zachodnie 2",
+    "to": "Schody Zachodnie 1",
+    "preset": "stairs",
+    "L": 3.5016217186002345
+  },
+  {
+    "from": "Schody Centralne 1",
+    "to": "Schody Centralne 2",
+    "preset": "stairs",
+    "L": 4.344195737214921
+  },
+  {
+    "from": "Schody Centralne 2",
+    "to": "Schody Centralne 3",
+    "preset": "stairs",
+    "L": 7.01684961499197
+  },
+  {
+    "from": "Schody Centralne 3",
+    "to": "Schody Centralne 4",
+    "preset": "stairs",
+    "L": 3.521024193309451
+  },
+  {
+    "from": "Schody Centralne 4",
+    "to": "Schody Centralne 5",
+    "preset": "stairs",
+    "L": 3.5058346976235915
+  },
+  {
+    "from": "Winda Centralna 5",
+    "to": "Winda Centralna 6",
+    "preset": "elevator",
+    "L": 3.501621721352525
+  },
+  {
+    "from": "Winda Centralna 5",
+    "to": "Winda Centralna 4",
+    "preset": "elevator",
+    "L": 3.501621727778598
+  },
+  {
+    "from": "Winda Centralna 4",
+    "to": "Winda Centralna 3",
+    "preset": "elevator",
+    "L": 3.5012974440277724
+  },
+  {
+    "from": "Winda Centralna 3",
+    "to": "Winda Centralna 2",
+    "preset": "elevator",
+    "L": 3.506482385224191
+  },
+  {
+    "from": "Winda Centralna 2",
+    "to": "Winda Centralna 1",
+    "preset": "elevator",
+    "L": 3.6302632815299622
+  },
+  {
+    "from": "Schody Wschodnie 5",
+    "to": "Schody Wschodnie 4",
+    "preset": "stairs",
+    "L": 7.0012975612728185
+  },
+  {
+    "from": "Schody Wschodnie 4",
+    "to": "Schody Wschodnie 3",
+    "preset": "stairs",
+    "L": 3.5032426955258096
+  },
+  {
+    "from": "Schody Wschodnie 3",
+    "to": "Schody Wschodnie 2",
+    "preset": "stairs",
+    "L": 3.505510796683369
+  },
+  {
+    "from": "Schody Wschodnie 2",
+    "to": "Schody Wschodnie 1",
+    "preset": "stairs",
+    "L": 3.501621723979079
+  },
+  {
+    "from": "Winda Południowa 1",
+    "to": "Winda Południowa 3",
+    "preset": "normal",
+    "L": 4.16808744142409
+  },
+  {
+    "from": "Winda Południowa 2",
+    "to": "Winda Południowa 3",
+    "preset": "elevator",
+    "L": 3.5032427464942133
+  },
+  {
+    "from": "Winda Południowa 3",
+    "to": "Winda Południowa 4",
+    "preset": "elevator",
+    "L": 3.501621746480568
+  },
+  {
+    "from": "Winda Południowa 4",
+    "to": "Winda Południowa 5",
+    "preset": "elevator",
+    "L": 3.508101218953802
+  },
+  {
+    "from": "Winda Południowa 5",
+    "to": "Winda Południowa 6",
+    "preset": "elevator",
+    "L": 3.5064824857621666
+  },
+  {
+    "from": "Winda Południowa 6",
+    "to": "Winda Południowa 7",
+    "preset": "elevator",
+    "L": 3.5032427132474804
+  },
+  {
+    "from": "Zewnątrz Południe 1",
+    "to": "Zewnątrz Południe",
+    "preset": "normal",
+    "L": 13.316897215417487
+  },
+  {
+    "from": "Zewnątrz Południe",
+    "to": "Zewnątrz Południe 2",
+    "preset": "normal",
+    "L": 16.860821881060385
+  },
+  {
+    "from": "Zewnątrz Południe 2",
+    "to": "Zewnątrz Zachód 1",
+    "preset": "normal",
+    "L": 18.831472507393023
+  },
+  {
+    "from": "Zewnątrz Zachód 1",
+    "to": "Zewnątrz Zachód 2",
+    "preset": "normal",
+    "L": 15.532010763555903
+  },
+  {
+    "from": "Zewnątrz Wschód 1",
+    "to": "Zewnątrz Południe 1",
+    "preset": "normal",
+    "L": 32.88123589134019
+  },
+  {
+    "from": "Zewnątrz Południe",
+    "to": "Poziom 1 Klatka Schodowa",
+    "preset": "normal",
+    "L": 9.824710223550728
+  },
+  {
+    "from": "Poziom 1 Klatka Schodowa",
+    "to": "Poziom 1 Korytarz 1",
+    "preset": "stairs",
+    "L": 9.615633739095346
+  },
+  {
+    "from": "Poziom 1 Korytarz 1",
+    "to": "Poziom 1 Korytarz 2",
+    "preset": "normal",
+    "L": 12.236955536934904
+  },
+  {
+    "from": "Poziom 1 Korytarz 2",
+    "to": "Poziom 1 Korytarz 3",
+    "preset": "normal",
+    "L": 12.885077942454505
+  },
+  {
+    "from": "Poziom 1 Korytarz 3",
+    "to": "Poziom 1 Korytarz 4",
+    "preset": "normal",
+    "L": 10.282884962694148
+  },
+  {
+    "from": "Poziom 1 Korytarz 4",
+    "to": "Poziom 1 Korytarz 5",
+    "preset": "stairs",
+    "L": 6.27186548797204
+  },
+  {
+    "from": "Poziom 1 Korytarz 5",
+    "to": "Poziom -1 Korytarz 3",
+    "preset": "stairs",
+    "L": 6.293011759438251
+  },
+  {
+    "from": "Poziom 1 Korytarz 5",
+    "to": "Poziom 1 Korytarz 6",
+    "preset": "stairs",
+    "L": 11.578104436899302
+  },
+  {
+    "from": "Poziom -1 Korytarz 2",
+    "to": "Poziom -1 Korytarz 3",
+    "preset": "normal",
+    "L": 20.0449
+  },
+  {
+    "from": "Stołówka",
+    "to": "Poziom -1 Korytarz 2",
+    "preset": "normal",
+    "L": 6.8916455810212005
+  },
+  {
+    "from": "Poziom -1 Korytarz 2",
+    "to": "Poziom -1 Korytarz 1",
+    "preset": "normal",
+    "L": 15.2917
+  },
+  {
+    "from": "Poziom 1 Klatka Schodowa",
+    "to": "Poziom -1 Korytarz 1",
+    "preset": "stairs",
+    "L": 10.296679082354062
+  },
+  {
+    "from": "Winda Południowa 1",
+    "to": "Poziom 1 Klatka Schodowa",
+    "preset": "normal",
+    "L": 7.7256177308327905
+  },
+  {
+    "from": "Poziom -1 Korytarz 1",
+    "to": "Winda Południowa 2",
+    "preset": "normal",
+    "L": 5.044059554840344
+  },
+  {
+    "from": "Poziom 1 Korytarz 6",
+    "to": "Poziom 1 Korytarz 8",
+    "preset": "normal",
+    "L": 9.777473752162802
+  },
+  {
+    "from": "Poziom 1 Korytarz 6",
+    "to": "Maksimus 2",
+    "preset": "normal",
+    "L": 9.126258335418548
+  },
+  {
+    "from": "Poziom 1 Korytarz 6",
+    "to": "Maksimus 1",
+    "preset": "normal",
+    "L": 10.36379856411715
+  },
+  {
+    "from": "Poziom 1 Korytarz 9",
+    "to": "Poziom 1 Korytarz 8",
+    "preset": "normal",
+    "L": 10.726944633082729
+  },
+  {
+    "from": "Poziom 1 Korytarz 6",
+    "to": "Poziom 1 Korytarz 7",
+    "preset": "normal",
+    "L": 9.137566723909192
+  },
+  {
+    "from": "Zewnątrz Wschód 1",
+    "to": "Zewnątrz Północ 1",
+    "preset": "normal",
+    "L": 69.43749523234945
+  },
+  {
+    "from": "Zewnątrz Północ 1",
+    "to": "Zewnątrz Północ 2",
+    "preset": "normal",
+    "L": 54.42183473150394
+  },
+  {
+    "from": "Poziom 1 Korytarz 9",
+    "to": "Winda Centralna 5",
+    "preset": "normal",
+    "L": 5.701413788298804
+  },
+  {
+    "from": "Poziom 1 Korytarz 9",
+    "to": "Schody Centralne 2",
+    "preset": "normal",
+    "L": 5.719311384989097
+  },
+  {
+    "from": "Poziom 1 Korytarz 9",
+    "to": "Poziom 1 Korytarz 10",
+    "preset": "normal",
+    "L": 8.626399841457935
+  },
+  {
+    "from": "Poziom 1 Korytarz 10",
+    "to": "Zewnątrz Zachód 3",
+    "preset": "normal",
+    "L": 13.587028719199148
+  },
+  {
+    "from": "Zewnątrz Zachód 3",
+    "to": "Zewnątrz Zachód 2",
+    "preset": "normal",
+    "L": 21.560920699521326
+  },
+  {
+    "from": "Zewnątrz Północ 2",
+    "to": "Poziom 1 Korytarz 10",
+    "preset": "normal",
+    "L": 16.72257721444655
+  },
+  {
+    "from": "Poziom -1 Korytarz 4",
+    "to": "Poziom -1 Korytarz 5",
+    "preset": "normal",
+    "L": 22.592287025779953
+  },
+  {
+    "from": "Poziom 1 Korytarz 7",
+    "to": "Schody Wschodnie 4",
+    "preset": "stairs",
+    "L": 6.599578699531875
+  },
+  {
+    "from": "Poziom -1 Korytarz 4",
+    "to": "Schody Wschodnie 5",
+    "preset": "stairs",
+    "L": 19.328725407161
+  },
+  {
+    "from": "Poziom -1 Korytarz 5",
+    "to": "Schody Centralne 1",
+    "preset": "stairs",
+    "L": 8.636505632534565
+  },
+  {
+    "from": "Poziom -1 Korytarz 4",
+    "to": "Schody Centralne 1",
+    "preset": "stairs",
+    "L": 14.65481039807262
+  },
+  {
+    "from": "Poziom -1 Korytarz 4",
+    "to": "Winda Centralna 6",
+    "preset": "elevator",
+    "L": 11.993112970431424
+  },
+  {
+    "from": "Poziom -1 Korytarz 5",
+    "to": "Winda Centralna 6",
+    "preset": "elevator",
+    "L": 13.330470526204671
+  },
+  {
+    "from": "Poziom 2 Korytarz 1",
+    "to": "Poziom 2 Korytarz 2",
+    "preset": "normal",
+    "L": 20.592594806447096
+  },
+  {
+    "from": "Poziom 2 Korytarz 2",
+    "to": "Poziom 2 Korytarz 3",
+    "preset": "normal",
+    "L": 33.05843633581776
+  },
+  {
+    "from": "Poziom 2 Korytarz 3",
+    "to": "Poziom 2 Korytarz 4",
+    "preset": "normal",
+    "L": 20.437117274480745
+  },
+  {
+    "from": "Poziom 2 Korytarz 4",
+    "to": "Poziom 2 Korytarz 5",
+    "preset": "normal",
+    "L": 13.30615877113116
+  },
+  {
+    "from": "Poziom 2 Korytarz 1",
+    "to": "Winda Południowa 5",
+    "preset": "normal",
+    "L": 5.126368809733723
+  },
+  {
+    "from": "Poziom 2 Korytarz 1",
+    "to": "Poziom 3 Klatka Schodowa",
+    "preset": "stairs",
+    "L": 9.643040246541856
+  },
+  {
+    "from": "Poziom 2 Korytarz 1",
+    "to": "Poziom 2 Klatka Schodowa",
+    "preset": "stairs",
+    "L": 9.647576016241498
+  },
+  {
+    "from": "Poziom 2 Klatka Schodowa",
+    "to": "Poziom 1 Klatka Schodowa",
+    "preset": "stairs",
+    "L": 5.250865051737229
+  },
+  {
+    "from": "Poziom 2 Korytarz 3",
+    "to": "Schody Wschodnie 3",
+    "preset": "normal",
+    "L": 10.75199486802774
+  },
+  {
+    "from": "Poziom 2 Korytarz 5",
+    "to": "Schody Zachodnie 3",
+    "preset": "normal",
+    "L": 9.764958952215819
+  },
+  {
+    "from": "Poziom 2 Korytarz 4",
+    "to": "Schody Centralne 3",
+    "preset": "normal",
+    "L": 5.416053752362782
+  },
+  {
+    "from": "Poziom 2 Korytarz 4",
+    "to": "Winda Centralna 3",
+    "preset": "normal",
+    "L": 5.932148373862882
+  },
+  {
+    "from": "Poziom 3 Klatka Schodowa",
+    "to": "Poziom 4 Korytarz 1",
+    "preset": "stairs",
+    "L": 5.250216276296515
+  },
+  {
+    "from": "Poziom 4 Korytarz 1",
+    "to": "Poziom 4 Klatka Schodowa",
+    "preset": "normal",
+    "L": 9.506250821133825
+  },
+  {
+    "from": "Poziom 3 Klatka Schodowa",
+    "to": "Poziom 3 Korytarz 1",
+    "preset": "stairs",
+    "L": 30.32782955447907
+  },
+  {
+    "from": "Poziom 4 Klatka Schodowa",
+    "to": "Poziom  4 Korytarz 2",
+    "preset": "normal",
+    "L": 21.0149959796348
+  },
+  {
+    "from": "Poziom  4 Korytarz 2",
+    "to": "Poziom 4 Korytarz 3",
+    "preset": "normal",
+    "L": 22.21991859773094
+  },
+  {
+    "from": "Poziom 3 Korytarz 1",
+    "to": "Poziom 3 Korytarz 2",
+    "preset": "normal",
+    "L": 32.54652329584481
+  },
+  {
+    "from": "Poziom 3 Korytarz 3",
+    "to": "Poziom 3 Korytarz 2",
+    "preset": "normal",
+    "L": 19.869054353622367
+  },
+  {
+    "from": "Poziom 4 Korytarz 3",
+    "to": "Poziom 4 Biblioteka",
+    "preset": "normal",
+    "L": 15.285676101446546
+  },
+  {
+    "from": "Poziom 4 Biblioteka",
+    "to": "Poziom 4 Korytarz 4",
+    "preset": "normal",
+    "L": 16.307855851835043
+  },
+  {
+    "from": "Poziom 4 Korytarz 4",
+    "to": "Poziom 4 Korytarz 5",
+    "preset": "normal",
+    "L": 16.394243630556236
+  },
+  {
+    "from": "Winda Południowa 7",
+    "to": "Poziom 4 Klatka Schodowa",
+    "preset": "normal",
+    "L": 4.9745921236280735
+  },
+  {
+    "from": "Winda Południowa 6",
+    "to": "Poziom 3 Korytarz 1",
+    "preset": "normal",
+    "L": 21.964137142493147
+  },
+  {
+    "from": "Schody Wschodnie 1",
+    "to": "Poziom 4 Biblioteka",
+    "preset": "normal",
+    "L": 14.36516240700129
+  },
+  {
+    "from": "Poziom 3 Korytarz 2",
+    "to": "Schody Wschodnie 2",
+    "preset": "normal",
+    "L": 10.992657561597262
+  },
+  {
+    "from": "Poziom 4 Korytarz 4",
+    "to": "Winda Centralna 1",
+    "preset": "normal",
+    "L": 4.61681230442078
+  },
+  {
+    "from": "Poziom 4 Korytarz 4",
+    "to": "Schody Centralne 5",
+    "preset": "normal",
+    "L": 7.527126743446983
+  },
+  {
+    "from": "Winda Centralna 2",
+    "to": "Poziom 3 Korytarz 3",
+    "preset": "normal",
+    "L": 5.690051869482082
+  },
+  {
+    "from": "Schody Centralne 4",
+    "to": "Poziom 3 Korytarz 3",
+    "preset": "normal",
+    "L": 5.655624389795016
+  },
+  {
+    "from": "Poziom 3 Korytarz 3",
+    "to": "Schody Zachodnie 2",
+    "preset": "normal",
+    "L": 23.399554721936674
+  },
+  {
+    "from": "Poziom 4 Korytarz 5",
+    "to": "Schody Zachodnie 1",
+    "preset": "normal",
+    "L": 10.199057205052354
+  },
+  {
+    "from": "Winda Południowa 4",
+    "to": "Poziom 2 Klatka Schodowa",
+    "preset": "stairs",
+    "L": 11.0617726567933
+  },
+  {
+    "from": "Winda Południowa 4",
+    "to": "Poziom 2 Korytarz 1",
+    "preset": "stairs",
+    "L": 6.377811210831652
+  },
+  {
+    "from": "Schody Zachodnie 4",
+    "to": "Zewnątrz Północ 2",
+    "preset": "normal",
+    "L": 20.53933544055822
+  },
+  {
+    "from": "Poziom 1 Korytarz 1",
+    "to": "Poziom 2 Klatka Schodowa",
+    "preset": "stairs",
+    "L": 10.920616910862778
+  },
+  {
+    "from": "Schody Zachodnie 3",
+    "to": "Schody Zachodnie 4",
+    "preset": "stairs",
+    "L": 7.380429661741145
+  },
+  {
+    "from": "Poziom 1 Korytarz 1",
+    "to": "Winda Południowa 3",
+    "preset": "normal",
+    "L": 5.143597479741555
+  }
+]

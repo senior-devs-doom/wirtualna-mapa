@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>Edge editor</title>
+<link rel="stylesheet" href="https://unpkg.com/pannellum@2.5.6/build/pannellum.css" />
+<style>
+  html, body { margin:0; height:100%; font-family: sans-serif; font-size: 13px; }
+  #app { display:flex; height:100vh; }
+  #plot { flex: 1 1 auto; position: relative; }
+  #plot canvas { display: block; }
+  #sidebar { width: 320px; flex: 0 0 320px; overflow-y: auto; border-left: 1px solid #ccc; box-sizing: border-box; }
+  #toolbar { padding: 8px; border-bottom: 1px solid #ccc; }
+  #floors { padding: 8px; border-bottom: 1px solid #ccc; }
+  #floors label { display:block; margin: 2px 0; cursor:pointer; }
+  .swatch { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  #status { padding: 6px 8px; font-size: 12px; color: #555; border-bottom: 1px solid #ccc; white-space: pre-wrap; }
+  #legend { padding: 8px; border-bottom: 1px solid #ccc; font-size: 12px; }
+  #legend div { margin: 2px 0; }
+  #edgeList .item { padding: 6px 8px; border-bottom: 1px solid #eee; font-size: 12px; }
+  #edgeList .item button { float: right; }
+  .camBtn { margin: 2px; padding: 4px 8px; }
+
+  #photoPanel {
+    position: fixed; top: 0; left: 0;
+    width: 380px; height: 300px;
+    background: #fff; border: 1px solid #999; box-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+    z-index: 2000; padding: 8px; box-sizing: border-box;
+    display: flex; flex-direction: column;
+  }
+  #photoName { font-weight: bold; margin-bottom: 4px; min-height: 1em; text-align: center; }
+  #photoImgWrap { flex: 1 1 auto; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; color: #888; }
+  #photoImgWrap img { max-width: 100%; max-height: 100%; }
+  #panoViewer { width: 100%; height: 100%; display: none; }
+  #open360Btn { margin-top: 4px; }
+  .resizeHandle { position: absolute; background: transparent; }
+  #resizeRight { top: 0; right: -4px; width: 8px; height: 100%; cursor: ew-resize; }
+  #resizeBottom { left: 0; bottom: -4px; width: 100%; height: 8px; cursor: ns-resize; }
+  #resizeCorner { right: -4px; bottom: -4px; width: 12px; height: 12px; cursor: se-resize; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="plot"></div>
+
+  <div id="photoPanel">
+    <div id="photoName"></div>
+    <div id="photoImgWrap"><img id="photoImg" alt=""><div id="panoViewer"></div></div>
+    <button id="open360Btn" style="display:none">Otworz w 360&deg;</button>
+    <div id="resizeRight" class="resizeHandle"></div>
+    <div id="resizeBottom" class="resizeHandle"></div>
+    <div id="resizeCorner" class="resizeHandle"></div>
+  </div>
+
+  <div id="sidebar">
+    <div id="toolbar">
+      <button class="camBtn" data-view="top">Widok z gory</button>
+      <button class="camBtn" data-view="front">Widok z przodu</button>
+      <button class="camBtn" data-view="iso">Izometryczny</button>
+      <label for="sizeSlider" style="display:block; margin-top:6px;">Rozmiar punktu: <span id="sizeValue"></span>m</label>
+      <input type="range" id="sizeSlider" min="0.1" max="5" step="0.05" style="width:100%;" />
+      <label for="thicknessSlider" style="display:block; margin-top:6px;">Grubosc polaczen: <span id="thicknessValue"></span>px</label>
+      <input type="range" id="thicknessSlider" min="1" max="20" step="0.5" style="width:100%;" />
+    </div>
+    <div id="floors"></div>
+    <div id="legend">
+      <b>Laczenie punktow</b> (przeciagniecie tla obraca kamere):<br>
+      1) kliknij punkt startowy<br>
+      2) kliknij punkt docelowy, trzymajac:<br>
+      <div><span style="color:#2a7">&#9632;</span> nic = normal</div>
+      <div><span style="color:#c33">&#9632;</span> S = schody (Schody)</div>
+      <div><span style="color:#36c">&#9632;</span> W = winda (Winda)</div>
+      Esc lub ponowny klik na start = odwolanie.<br>
+      Ponowne polaczenie tej samej pary zastepuje poprzednie.<br>
+      Najedz na punkt = podglad zdjecia (przycisk otwiera pelny widok 360&deg;).<br>
+      <b>D + klik na polaczenie</b> = usun to polaczenie.
+    </div>
+    <div id="status">Wczytywanie...</div>
+    <div id="edgeList"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/pannellum@2.5.6/build/pannellum.js"></script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { Line2 } from 'three/addons/lines/Line2.js';
+import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+
+const METERS_PER_LEVEL = 3.5; // assumption: floor-to-floor height in meters, tune if known
+const PHOTO_DIR = 'photos_360';
+const HOVER_DEBOUNCE_MS = 150;
+
+let points = [];      // {name, x, y, z, height, category}
+let byName = {};
+let edges = [];        // [{from, to, preset, L, A..I}]
+let presets = {};
+let hiddenCategories = new Set();
+let dragStartName = null;
+let sHeld = false, wHeld = false, dHeld = false;
+let edgeThickness = Number(localStorage.getItem('edgeEditorEdgeThickness')) || 6;
+let currentViewer = null;
+let hoverTimer = null;
+let previewedName = null;
+
+const WINDA_SCHODY = 'Winda/Schody';
+function categoryFor(p) { return /winda|schody/i.test(p.name) ? WINDA_SCHODY : Math.floor(p.height); }
+function categoryLabel(c) { return c === WINDA_SCHODY ? WINDA_SCHODY : `Poziom ${c}`; }
+function colorForCategory(c, all) {
+  const idx = all.indexOf(c);
+  const hue = Math.round((idx * 360) / all.length);
+  return new THREE.Color(`hsl(${hue}, 80%, 45%)`);
+}
+
+function parseCSV(text) {
+  text = text.replace(/^﻿/, '');
+  const lines = text.split(/\r?\n/).filter(l => l.length > 0);
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const parts = lines[i].split(';');
+    const name = parts[0];
+    const [latStr, lonStr] = parts[1].split(',');
+    const lat = parseFloat(latStr);
+    const lon = parseFloat(lonStr);
+    const height = parts[3] !== undefined ? parseFloat(parts[3]) : 0;
+    if (lat === 0 && lon === 0) continue;
+    rows.push({ name, lat, lon, height });
+  }
+  return rows;
+}
+
+function toLocalXYZ(rows) {
+  const centerLat = rows.reduce((s, p) => s + p.lat, 0) / rows.length;
+  const centerLon = rows.reduce((s, p) => s + p.lon, 0) / rows.length;
+  const mPerDegLat = 111320;
+  const mPerDegLon = 111320 * Math.cos(centerLat * Math.PI / 180);
+  rows.forEach(p => {
+    p.x = (p.lon - centerLon) * mPerDegLon;
+    p.y = p.height * METERS_PER_LEVEL;
+    p.z = -(p.lat - centerLat) * mPerDegLat;
+  });
+}
+
+function pairKey(a, b) { return [a, b].sort().join('|||'); }
+function computeL(a, b) {
+  const dx = a.x - b.x, dy = a.y - b.y, dz = a.z - b.z;
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+function presetFor(s, w) { if (s) return 'stairs'; if (w) return 'elevator'; return 'normal'; }
+
+// ---------------------------------------------------------------------
+// three.js scene
+// ---------------------------------------------------------------------
+const container = document.getElementById('plot');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#ffffff');
+const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 10000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+container.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+scene.add(new THREE.GridHelper(200, 40, '#cccccc', '#eeeeee'));
+scene.add(new THREE.AxesHelper(20));
+
+function resizeRenderer() {
+  const w = container.clientWidth, h = container.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  edgeMeshes.forEach(({ line }) => line.material.resolution.set(w, h));
+  requestRender();
+}
+window.addEventListener('resize', resizeRenderer);
+
+let needsRender = true;
+function requestRender() { needsRender = true; }
+controls.addEventListener('change', requestRender);
+(function loop() {
+  requestAnimationFrame(loop);
+  if (needsRender) { renderer.render(scene, camera); needsRender = false; }
+})();
+
+const nodeGroup = new THREE.Group();
+const edgeGroup = new THREE.Group();
+scene.add(nodeGroup, edgeGroup);
+const nodeMeshes = []; // {mesh, point}
+const sphereGeom = new THREE.SphereGeometry(1, 10, 8); // unit sphere, actual size via mesh.scale
+let nodeRadius = Number(localStorage.getItem('edgeEditorNodeRadius')) || 0.35;
+
+function nodeColor(p, category, allCategories) {
+  if (p.name === dragStartName) return new THREE.Color('#ff9900');
+  return colorForCategory(category, allCategories);
+}
+
+function buildNodes() {
+  nodeGroup.clear();
+  nodeMeshes.length = 0;
+  const categories = [...new Set(points.map(categoryFor))].sort((a, b) => {
+    if (a === WINDA_SCHODY) return 1;
+    if (b === WINDA_SCHODY) return -1;
+    return a - b;
+  });
+  points.forEach(p => {
+    const cat = categoryFor(p);
+    const mat = new THREE.MeshBasicMaterial({ color: nodeColor(p, cat, categories) });
+    const mesh = new THREE.Mesh(sphereGeom, mat);
+    mesh.position.set(p.x, p.y, p.z);
+    mesh.scale.setScalar(nodeRadius);
+    mesh.visible = !hiddenCategories.has(String(cat));
+    mesh.userData = { name: p.name, category: cat };
+    nodeGroup.add(mesh);
+    nodeMeshes.push({ mesh, point: p });
+  });
+  buildFloorToggles(categories);
+  requestRender();
+}
+
+function applyNodeSize() {
+  nodeMeshes.forEach(({ mesh }) => mesh.scale.setScalar(nodeRadius));
+  requestRender();
+}
+
+function buildFloorToggles(categories) {
+  const div = document.getElementById('floors');
+  div.innerHTML = '';
+  categories.forEach(c => {
+    const key = String(c);
+    const label = document.createElement('label');
+    const color = colorForCategory(c, categories).getStyle();
+    label.innerHTML = `<input type="checkbox" ${hiddenCategories.has(key) ? '' : 'checked'} data-cat="${key}">
+      <span class="swatch" style="background:${color}"></span> ${categoryLabel(c)}`;
+    label.querySelector('input').addEventListener('change', e => {
+      if (e.target.checked) hiddenCategories.delete(key); else hiddenCategories.add(key);
+      applyVisibility();
+    });
+    div.appendChild(label);
+  });
+}
+
+function applyVisibility() {
+  nodeMeshes.forEach(({ mesh, point }) => {
+    mesh.visible = !hiddenCategories.has(String(categoryFor(point)));
+  });
+  buildEdges();
+}
+
+function colorForPreset(preset) {
+  return preset === 'stairs' ? '#c33' : preset === 'elevator' ? '#36c' : '#2a7';
+}
+
+const edgeMeshes = []; // {line, edgeIndex}
+
+function buildEdges() {
+  edgeGroup.clear();
+  edgeMeshes.length = 0;
+  const w = container.clientWidth, h = container.clientHeight;
+  edges.forEach((e, idx) => {
+    const a = byName[e.from], b = byName[e.to];
+    if (!a || !b) return;
+    if (hiddenCategories.has(String(categoryFor(a))) || hiddenCategories.has(String(categoryFor(b)))) return;
+
+    const geom = new LineGeometry();
+    geom.setPositions([a.x, a.y, a.z, b.x, b.y, b.z]);
+    const mat = new LineMaterial({ color: colorForPreset(e.preset), linewidth: edgeThickness });
+    mat.resolution.set(w, h);
+    const line = new Line2(geom, mat);
+    line.computeLineDistances();
+    line.userData = { edgeIndex: idx };
+    edgeGroup.add(line);
+    edgeMeshes.push({ line, edgeIndex: idx });
+  });
+  requestRender();
+}
+
+function applyEdgeThickness() {
+  edgeMeshes.forEach(({ line }) => { line.material.linewidth = edgeThickness; });
+  requestRender();
+}
+
+function refreshNodeColors() {
+  const categories = [...new Set(points.map(categoryFor))];
+  nodeMeshes.forEach(({ mesh, point }) => {
+    mesh.material.color.copy(nodeColor(point, categoryFor(point), categories));
+  });
+  requestRender();
+}
+
+function renderEdgeList() {
+  const list = document.getElementById('edgeList');
+  list.innerHTML = '';
+  edges.forEach((e, idx) => {
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.innerHTML = `${e.from} &harr; ${e.to} <br>preset: ${e.preset}, L=${e.L.toFixed(2)}m <button data-idx="${idx}">usun</button>`;
+    div.querySelector('button').addEventListener('click', () => deleteEdge(idx));
+    list.appendChild(div);
+  });
+}
+
+function deleteEdge(idx) {
+  edges.splice(idx, 1);
+  saveEdges();
+  buildEdges();
+  renderEdgeList();
+}
+
+function resetStatus() {
+  document.getElementById('status').textContent = `${points.length} punktow, ${edges.length} polaczen.`;
+}
+
+function saveEdges() {
+  fetch('/save-edges', { method: 'POST', body: JSON.stringify(edges, null, 2) })
+    .then(r => { if (!r.ok) document.getElementById('status').textContent = 'Blad zapisu edges.json'; })
+    .catch(() => { document.getElementById('status').textContent = 'Blad zapisu - sprawdz server.py'; });
+}
+
+function createOrReplaceEdge(fromName, toName, preset) {
+  if (fromName === toName) return;
+  const key = pairKey(fromName, toName);
+  edges = edges.filter(e => pairKey(e.from, e.to) !== key);
+  const a = byName[fromName], b = byName[toName];
+  const L = computeL(a, b);
+  // zagrożenia, n i d wylicza build_export.py z presetu i różnicy wysokości węzłów
+  const edge = { from: fromName, to: toName, preset, L };
+  edges.push(edge);
+  saveEdges();
+  buildEdges();
+  renderEdgeList();
+}
+
+// ---------------------------------------------------------------------
+// photo panel: cheap flat preview on hover (debounced), full 360 view on demand
+// ---------------------------------------------------------------------
+function clearPhoto() {
+  if (currentViewer) { currentViewer.destroy(); currentViewer = null; }
+  document.getElementById('panoViewer').style.display = 'none';
+  document.getElementById('photoImg').style.display = 'none';
+  document.getElementById('open360Btn').style.display = 'none';
+  document.getElementById('photoName').textContent = '';
+  previewedName = null;
+}
+
+function showPreview(name) {
+  if (currentViewer) { currentViewer.destroy(); currentViewer = null; }
+  document.getElementById('panoViewer').style.display = 'none';
+  previewedName = name;
+  const label = document.getElementById('photoName');
+  const img = document.getElementById('photoImg');
+  const btn = document.getElementById('open360Btn');
+  label.textContent = name;
+  img.onload = () => { img.style.display = 'block'; btn.style.display = 'block'; };
+  img.onerror = () => { img.style.display = 'none'; btn.style.display = 'none'; label.textContent = name + ' (brak zdjecia)'; };
+  img.src = encodeURI(`${PHOTO_DIR}/${name}.jpg`);
+}
+
+document.getElementById('open360Btn').addEventListener('click', () => {
+  if (!previewedName) return;
+  const img = document.getElementById('photoImg');
+  const pano = document.getElementById('panoViewer');
+  img.style.display = 'none';
+  pano.style.display = 'block';
+  currentViewer = pannellum.viewer('panoViewer', {
+    type: 'equirectangular', panorama: encodeURI(`${PHOTO_DIR}/${previewedName}.jpg`),
+    autoLoad: true, showZoomCtrl: true, compass: false
+  });
+});
+
+(function setupPhotoResize() {
+  const panel = document.getElementById('photoPanel');
+  const minW = 160, minH = 140;
+  function startDrag(e, resizeW, resizeH) {
+    e.preventDefault();
+    const startX = e.clientX, startY = e.clientY;
+    const startWidth = panel.offsetWidth, startHeight = panel.offsetHeight;
+    function onMove(ev) {
+      if (resizeW) panel.style.width = Math.max(minW, startWidth + (ev.clientX - startX)) + 'px';
+      if (resizeH) panel.style.height = Math.max(minH, startHeight + (ev.clientY - startY)) + 'px';
+      if (currentViewer) currentViewer.resize();
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+  document.getElementById('resizeRight').addEventListener('mousedown', e => startDrag(e, true, false));
+  document.getElementById('resizeBottom').addEventListener('mousedown', e => startDrag(e, false, true));
+  document.getElementById('resizeCorner').addEventListener('mousedown', e => startDrag(e, true, true));
+})();
+
+// ---------------------------------------------------------------------
+// interaction: raycasting for hover-preview + click-to-connect
+// ---------------------------------------------------------------------
+const raycaster = new THREE.Raycaster();
+const pointerNDC = new THREE.Vector2();
+let pointerIsDown = false;
+let downScreen = null;
+
+function setNDC(clientX, clientY) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointerNDC.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+  pointerNDC.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointerNDC, camera);
+}
+
+function pickNodeAt(clientX, clientY) {
+  setNDC(clientX, clientY);
+  const hits = raycaster.intersectObjects(nodeMeshes.map(n => n.mesh));
+  return hits.length ? hits[0].object.userData.name : null;
+}
+
+function pickEdgeAt(clientX, clientY) {
+  setNDC(clientX, clientY);
+  raycaster.params.Line2 = { threshold: Math.max(4, edgeThickness * 3) };
+  const hits = raycaster.intersectObjects(edgeMeshes.map(e => e.line));
+  return hits.length ? hits[0].object.userData.edgeIndex : null;
+}
+
+renderer.domElement.addEventListener('pointerdown', e => {
+  pointerIsDown = true;
+  downScreen = { x: e.clientX, y: e.clientY };
+});
+
+renderer.domElement.addEventListener('pointermove', e => {
+  if (pointerIsDown) return; // don't churn hover/photo lookups while orbiting
+  const name = pickNodeAt(e.clientX, e.clientY);
+  if (hoverTimer) clearTimeout(hoverTimer);
+  if (!name) { hoverTimer = setTimeout(clearPhoto, HOVER_DEBOUNCE_MS); return; }
+  if (name === previewedName) return;
+  hoverTimer = setTimeout(() => showPreview(name), HOVER_DEBOUNCE_MS);
+});
+
+window.addEventListener('pointerup', e => {
+  if (!pointerIsDown) return;
+  pointerIsDown = false;
+  const dx = e.clientX - downScreen.x, dy = e.clientY - downScreen.y;
+  if (Math.sqrt(dx * dx + dy * dy) > 5) return; // was a camera drag, not a click
+
+  if (dHeld) {
+    const edgeIndex = pickEdgeAt(e.clientX, e.clientY);
+    if (edgeIndex !== null) deleteEdge(edgeIndex);
+    return;
+  }
+
+  const name = pickNodeAt(e.clientX, e.clientY);
+  if (!name) return;
+  handleNodeClick(name);
+});
+
+function handleNodeClick(name) {
+  if (!dragStartName) {
+    dragStartName = name;
+    refreshNodeColors();
+    document.getElementById('status').textContent = `Punkt startowy: ${name}\nKliknij punkt docelowy (S=schody, W=winda, Esc=odwolaj).`;
+    return;
+  }
+  if (name === dragStartName) {
+    dragStartName = null;
+    refreshNodeColors();
+    resetStatus();
+    return;
+  }
+  const preset = presetFor(sHeld, wHeld);
+  createOrReplaceEdge(dragStartName, name, preset);
+  dragStartName = null;
+  refreshNodeColors();
+  resetStatus();
+}
+
+window.addEventListener('keydown', e => {
+  if (e.key === 's' || e.key === 'S') sHeld = true;
+  if (e.key === 'w' || e.key === 'W') wHeld = true;
+  if (e.key === 'd' || e.key === 'D') dHeld = true;
+  if (e.key === 'Escape' && dragStartName) { dragStartName = null; refreshNodeColors(); resetStatus(); }
+});
+window.addEventListener('keyup', e => {
+  if (e.key === 's' || e.key === 'S') sHeld = false;
+  if (e.key === 'w' || e.key === 'W') wHeld = false;
+  if (e.key === 'd' || e.key === 'D') dHeld = false;
+});
+
+document.querySelectorAll('.camBtn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const view = btn.dataset.view;
+    const d = 60;
+    const pos = view === 'top' ? [0.01, d, 0.01] : view === 'front' ? [0, 5, d] : [d * 0.7, d * 0.5, d * 0.7];
+    camera.position.set(...pos);
+    controls.target.set(0, 0, 0);
+    controls.update();
+    requestRender();
+  });
+});
+
+const sizeSlider = document.getElementById('sizeSlider');
+sizeSlider.value = nodeRadius;
+document.getElementById('sizeValue').textContent = nodeRadius;
+sizeSlider.addEventListener('input', e => {
+  nodeRadius = Number(e.target.value);
+  document.getElementById('sizeValue').textContent = nodeRadius;
+  localStorage.setItem('edgeEditorNodeRadius', nodeRadius);
+  applyNodeSize();
+});
+
+const thicknessSlider = document.getElementById('thicknessSlider');
+thicknessSlider.value = edgeThickness;
+document.getElementById('thicknessValue').textContent = edgeThickness;
+thicknessSlider.addEventListener('input', e => {
+  edgeThickness = Number(e.target.value);
+  document.getElementById('thicknessValue').textContent = edgeThickness;
+  localStorage.setItem('edgeEditorEdgeThickness', edgeThickness);
+  applyEdgeThickness();
+});
+
+// ---------------------------------------------------------------------
+// boot
+// ---------------------------------------------------------------------
+Promise.all([
+  fetch('location.csv').then(r => r.text()),
+  fetch('edges.json').then(r => r.ok ? r.json() : []),
+  fetch('risk_presets.json').then(r => r.json())
+]).then(([csvText, edgesData, presetsData]) => {
+  const rows = parseCSV(csvText);
+  toLocalXYZ(rows);
+  points = rows;
+  byName = {};
+  points.forEach(p => byName[p.name] = p);
+  edges = edgesData;
+  presets = {};
+  presetsData.forEach(p => presets[p.name] = p);
+
+  resizeRenderer();
+  buildNodes();
+  buildEdges();
+  renderEdgeList();
+  camera.position.set(40, 35, 40);
+  controls.update();
+  resetStatus();
+
+  window.__debug = {
+    points, byName,
+    getEdges: () => edges,
+    pickNodeAt, pickEdgeAt, camera,
+    getEdgeLinewidths: () => edgeMeshes.map(e => e.line.material.linewidth),
+    getDragStart: () => dragStartName,
+    getHidden: () => [...hiddenCategories],
+    worldToScreen: name => {
+      const p = byName[name];
+      if (!p) return null;
+      const v = new THREE.Vector3(p.x, p.y, p.z).project(camera);
+      const rect = renderer.domElement.getBoundingClientRect();
+      return {
+        x: rect.left + (v.x + 1) / 2 * rect.width,
+        y: rect.top + (1 - v.y) / 2 * rect.height,
+      };
+    },
+    edgeMidToScreen: idx => {
+      const e = edges[idx];
+      const a = byName[e.from], b = byName[e.to];
+      const mid = new THREE.Vector3((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2).project(camera);
+      const rect = renderer.domElement.getBoundingClientRect();
+      return {
+        x: rect.left + (mid.x + 1) / 2 * rect.width,
+        y: rect.top + (1 - mid.y) / 2 * rect.height,
+      };
+    },
+  };
+}).catch(err => {
+  document.getElementById('status').textContent = 'Blad wczytywania: ' + err.message;
+});
+</script>
+</body>
+</html>

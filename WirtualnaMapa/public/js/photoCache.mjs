@@ -8,8 +8,8 @@
 //   najbliższych węzłów), maksymalnie `maxBackground` równolegle; kolejne
 //   wywołanie zastępuje kolejność (re-priorytetyzacja po każdej nawigacji).
 // - Trwały cache w Cache Storage pod kluczem CID (CID jest niezmienny, więc nie
-//   potrzeba unieważniania). Zdjęcia bez CID (lokalny zapas) trzymane tylko w pamięci.
-// - Źródła po kolei: bramy IPFS, a na końcu adres lokalny (localUrl).
+//   potrzeba unieważniania).
+// - Źródła po kolei: bramy IPFS (pierwsza działająca).
 //
 // fetch/caches są wstrzykiwane, żeby moduł dało się testować w Node.
 
@@ -19,7 +19,6 @@ const MIN_VALID_BYTES = 1000;
 export class PhotoCache {
   constructor({
     gateways = [],
-    localUrl = () => null,
     cacheName = 'wm-photos-v1',
     maxBackground = 3,
     fetchImpl = (...a) => globalThis.fetch(...a),
@@ -28,7 +27,6 @@ export class PhotoCache {
     now = () => performance.now(),
   } = {}) {
     this.gateways = gateways;
-    this.localUrl = localUrl;
     this.cacheName = cacheName;
     this.maxBackground = maxBackground;
     this.fetchImpl = fetchImpl;
@@ -51,7 +49,7 @@ export class PhotoCache {
       if (!name) continue;
       const cid = n.properties.imageCid || '';
       this.items.set(n.id, {
-        id: n.id, name, cid, key: cid || `local:${name}`,
+        id: n.id, name, cid, key: cid,
         status: 'idle',          // idle | loading | ready | error
         kind: null,              // 'foreground' | 'background'
         promise: null, controller: null, blobUrl: null,
@@ -201,16 +199,14 @@ export class PhotoCache {
         }
       } catch { /* przejdź do sieci */ }
     }
-    // 2. sieć: bramy po kolei, na końcu lokalnie
+    // 2. sieć: bramy po kolei
     const sources = [];
     if (item.cid) this.gateways.forEach(g => sources.push({ url: g + item.cid, label: new URL(g).host }));
-    const local = this.localUrl(item);
-    if (local) sources.push({ url: local, label: 'local' });
     let lastErr = new Error(`Brak źródeł dla ${item.name}`);
     for (const src of sources) {
       try {
         const blob = await this._download(item, src.url);
-        if (item.cid && this.cachesImpl && src.label !== 'local') {
+        if (item.cid && this.cachesImpl) {
           try { await (await this.cachesImpl.open(this.cacheName)).put(this._storageKey(item), new Response(blob, { headers: { 'Content-Type': 'image/jpeg' } })); this.stored.add(item.cid); } catch { /* cache pełny / niedostępny */ }
         }
         return this._finish(item, blob, false, src.label, t0);

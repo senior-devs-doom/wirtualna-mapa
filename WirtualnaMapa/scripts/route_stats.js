@@ -1,6 +1,6 @@
 // route_stats.js - statystyki tras dla profili użytkownika (podrozdział 7.1 pracy).
 //
-// Użycie:  GRAPH_JSON=data/graph_export.json node scripts/route_stats.js [wynik.json]
+// Użycie:  GRAPH_JSON=../tools/graph_export.json node scripts/route_stats.js [wynik.json]
 // (bez GRAPH_JSON czyta graf z bazy jak aplikacja). Niczego nie zapisuje poza plikiem wynikowym.
 require('dotenv').config({ quiet: true });
 const fs = require('fs');

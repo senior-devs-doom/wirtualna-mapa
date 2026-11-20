@@ -9,23 +9,13 @@ app.use(express.json());
 
 // static frontend - no-store while this is under active development: a
 // browser silently serving a stale cached index.html/JS after an edit reads
-// as a phantom bug (a fix that "isn't working"), the same class of problem
-// the /photos no-store below already exists to prevent
+// as a phantom bug (a fix that "isn't working")
 app.use(express.static(path.join(__dirname, '../public'), {
   setHeaders: res => res.setHeader('Cache-Control', 'no-store'),
 }));
 
 // fuzzy-search library served from node_modules (no CDN dependency at runtime)
 app.use('/vendor/fuse', express.static(path.join(__dirname, '../node_modules/fuse.js/dist'), {
-  setHeaders: res => res.setHeader('Cache-Control', 'no-store'),
-}));
-
-// real 360 photos, named by Location.name - served straight from tools/,
-// not duplicated into public/img. no-store: these get overwritten in place
-// by the calibration tool, and a browser silently serving a stale cached
-// copy after that (rather than a normal 304 revalidation) is exactly what
-// caused "I corrected it, navigated away, came back, angle's wrong again"
-app.use('/photos', express.static(path.join(__dirname, '../photos_360'), {
   setHeaders: res => res.setHeader('Cache-Control', 'no-store'),
 }));
 

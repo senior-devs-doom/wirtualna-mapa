@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>XYZ point view</title>
+<style>
+  html, body { margin:0; height:100%; font-family: sans-serif; }
+  #plot { width:100vw; height:100vh; }
+  #status { position:fixed; top:8px; left:8px; font-size:12px; color:#555; z-index:10; }
+</style>
+</head>
+<body>
+<div id="status">Wczytywanie...</div>
+<div id="plot"></div>
+
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script>
+function parseCSV(text) {
+  text = text.replace(/^﻿/, '');
+  const lines = text.split(/\r?\n/).filter(l => l.length > 0);
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const parts = lines[i].split(';');
+    const name = parts[0];
+    const [latStr, lonStr] = parts[1].split(',');
+    const lat = parseFloat(latStr);
+    const lon = parseFloat(lonStr);
+    const height = parts[3] !== undefined ? parseFloat(parts[3]) : 0;
+    if (lat === 0 && lon === 0) continue; // no usable position
+    rows.push({ name, lat, lon, height });
+  }
+  return rows;
+}
+
+const WINDA_SCHODY = 'Winda/Schody';
+
+function categoryFor(p) {
+  return /winda|schody/i.test(p.name) ? WINDA_SCHODY : Math.floor(p.height);
+}
+
+function toLocalXY(rows) {
+  const centerLat = rows.reduce((s,p) => s+p.lat, 0) / rows.length;
+  const centerLon = rows.reduce((s,p) => s+p.lon, 0) / rows.length;
+  const mPerDegLat = 111320;
+  const mPerDegLon = 111320 * Math.cos(centerLat * Math.PI / 180);
+  rows.forEach(p => {
+    p.x = (p.lon - centerLon) * mPerDegLon;
+    p.y = (p.lat - centerLat) * mPerDegLat;
+  });
+}
+
+fetch('location.csv')
+  .then(r => { if (!r.ok) throw new Error('csv not found'); return r.text(); })
+  .then(text => {
+    const rows = parseCSV(text);
+    toLocalXY(rows);
+
+    const groups = {};
+    rows.forEach(p => {
+      const cat = categoryFor(p);
+      (groups[cat] = groups[cat] || []).push(p);
+    });
+
+    const catKeys = Object.keys(groups).sort((a, b) => {
+      if (a === WINDA_SCHODY) return 1;
+      if (b === WINDA_SCHODY) return -1;
+      return Number(a) - Number(b);
+    });
+
+    const traces = catKeys.map(cat => {
+      const pts = groups[cat];
+      return {
+        type: 'scatter3d',
+        mode: 'markers',
+        name: cat === WINDA_SCHODY ? WINDA_SCHODY : `Poziom ${cat}`,
+        x: pts.map(p => p.x),
+        y: pts.map(p => p.y),
+        z: pts.map(p => p.height),
+        text: pts.map(p => `${p.name} (h=${p.height})`),
+        hoverinfo: 'text',
+        marker: { size: 4 }
+      };
+    });
+
+    const xs = rows.map(p => p.x), ys = rows.map(p => p.y), zs = rows.map(p => p.height);
+    const xr = Math.max(...xs) - Math.min(...xs);
+    const yr = Math.max(...ys) - Math.min(...ys);
+    const zr = Math.max(...zs) - Math.min(...zs);
+    const maxr = Math.max(xr, yr, zr);
+
+    Plotly.newPlot('plot', traces, {
+      margin: { l: 0, r: 0, b: 0, t: 30 },
+      scene: {
+        xaxis: { title: 'X (m)' },
+        yaxis: { title: 'Y (m)' },
+        zaxis: { title: 'Z (height)' },
+        aspectmode: 'manual',
+        aspectratio: { x: xr / maxr, y: yr / maxr, z: (zr / maxr) * 2 }
+      },
+      legend: { itemsizing: 'constant' }
+    });
+
+    document.getElementById('status').textContent = `${rows.length} punktow, ${catKeys.length} grup.`;
+  })
+  .catch(err => {
+    document.getElementById('status').textContent = 'Blad: ' + err.message;
+  });
+</script>
+</body>
+</html>

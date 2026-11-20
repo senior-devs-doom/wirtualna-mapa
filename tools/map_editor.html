@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>GPS point corrector</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/pannellum@2.5.6/build/pannellum.css" />
+<style>
+  html, body { margin:0; height:100%; font-family: sans-serif; font-size: 13px; }
+  #app { display:flex; height:100vh; }
+  #map { flex: 1 1 auto; }
+  #sidebar { width: 320px; flex: 0 0 320px; overflow-y: auto; border-left: 1px solid #ccc; box-sizing: border-box; }
+  #toolbar { padding: 8px; border-bottom: 1px solid #ccc; display:flex; flex-direction:column; gap:6px; }
+  #toolbar button, #toolbar input[type=file] { width: 100%; box-sizing:border-box; padding:6px; }
+  #floors { padding: 8px; border-bottom: 1px solid #ccc; }
+  #floors label { display:block; margin: 2px 0; cursor:pointer; }
+  #search { width:100%; box-sizing:border-box; padding:6px; margin-top:4px; }
+  #status { padding: 6px 8px; font-size: 12px; color: #555; }
+  #list .group-header {
+    padding: 5px 8px; font-weight: bold; font-size: 11px; text-transform: uppercase;
+    background: #eee; border-bottom: 1px solid #ccc; position: sticky; top: 0;
+  }
+  #list .item { padding: 6px 8px; border-bottom: 1px solid #eee; cursor: pointer; }
+  #list .item:hover { background: #f2f2f2; }
+  #list .item.invalid { background: #fff0f0; }
+  #list .name { font-weight: bold; }
+  #list .coords { color: #666; font-size: 11px; }
+  #list .desc { color: #557; font-size: 11px; font-style: italic; }
+  #photoPanel {
+    position: fixed; top: 0; left: 0;
+    width: 420px; height: 320px;
+    background: #fff; border: 1px solid #999; box-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+    z-index: 2000; padding: 8px; box-sizing: border-box;
+    display: flex; flex-direction: column;
+  }
+  #photoHeader { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
+  #photoNameInput {
+    flex: 1 1 auto; font-weight: bold; text-align: center; min-height: 1em;
+    border: 1px solid transparent; background: transparent; font-size: 13px; font-family: inherit;
+    padding: 2px 4px; box-sizing: border-box;
+  }
+  #photoNameInput:not(:disabled) { border-color: #4a90d9; background: #fff; cursor: text; }
+  #unpinBtn { border: 1px solid #999; background: #fff; border-radius: 3px; cursor: pointer; padding: 2px 6px; }
+  #photoDescInput {
+    width: 100%; box-sizing: border-box; resize: vertical; min-height: 36px; max-height: 160px;
+    font-family: inherit; font-size: 12px; padding: 4px; margin-bottom: 4px;
+    border: 1px solid transparent; background: transparent; color: #333;
+  }
+  #photoDescInput:not(:disabled) { border-color: #4a90d9; background: #fff; }
+  #photoDescInput::placeholder { color: #999; }
+  #photoImgWrap { flex: 1 1 auto; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; color: #888; }
+  #panoViewer { width: 100%; height: 100%; }
+  .resizeHandle { position: absolute; background: transparent; }
+  #resizeRight { top: 0; right: -4px; width: 8px; height: 100%; cursor: ew-resize; }
+  #resizeBottom { left: 0; bottom: -4px; width: 100%; height: 8px; cursor: ns-resize; }
+  #resizeCorner { right: -4px; bottom: -4px; width: 12px; height: 12px; cursor: se-resize; }
+  .swatch { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  .leaflet-div-icon-label {
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 2px rgba(0,0,0,0.6);
+    box-sizing: border-box;
+  }
+  .leaflet-div-icon-label.invalid { border: 2px dashed red; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="map"></div>
+  <div id="photoPanel">
+    <div id="photoHeader">
+      <input type="text" id="photoNameInput" disabled title="Kliknij punkt na mapie/liscie, aby edytowac nazwe" />
+      <button id="unpinBtn" title="Odepnij (wroc do podgladu po najechaniu)" style="display:none;">&#x2715;</button>
+    </div>
+    <textarea id="photoDescInput" placeholder="Opis / punkty zainteresowania..." disabled></textarea>
+    <div id="photoImgWrap"><div id="panoViewer"></div></div>
+    <div id="resizeRight" class="resizeHandle"></div>
+    <div id="resizeBottom" class="resizeHandle"></div>
+    <div id="resizeCorner" class="resizeHandle"></div>
+  </div>
+  <div id="sidebar">
+    <div id="toolbar">
+      <button id="saveBtn">Zapisz teraz</button>
+      <input type="text" id="search" placeholder="Filtruj po nazwie..." />
+      <label for="sizeSlider" style="display:block; margin-top:6px;">Rozmiar punktu: <span id="sizeValue"></span>px</label>
+      <input type="range" id="sizeSlider" min="6" max="60" step="1" style="width:100%;" />
+    </div>
+    <div id="floors"></div>
+    <div id="status">Wczytaj plik CSV, aby zaczac.</div>
+    <div id="list"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/pannellum@2.5.6/build/pannellum.js"></script>
+<script>
+const map = L.map('map', { zoomSnap: 0.25 }).setView([50.3268, 19.1918], 19);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  maxZoom: 21,
+  attribution: 'Tiles &copy; Esri'
+}).addTo(map);
+
+let points = [];       // {name, lat, lon, timestamp, height, description, rowIndex, valid, marker}
+let floorLayers = {};  // height -> L.layerGroup
+let floorColors = {};
+
+const HOVER_DEBOUNCE_MS = 150;
+let hoverTimer = null;
+let lastHoverName = null;
+
+// the point currently "pinned" for editing (set by a click, not a hover) -
+// while pinned, hovering other markers no longer steals the panel, so you
+// can actually type a name/description without the mouse brushing past
+// another point and yanking the fields out from under you
+let pinnedPoint = null;
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+function tooltipHtml(p) {
+  let html = `<b>${escapeHtml(p.name)}</b>`;
+  if (p.description) html += `<br>${escapeHtml(p.description).replace(/\n/g, '<br>')}`;
+  return html;
+}
+
+let markerSize = Number(localStorage.getItem('mapEditorMarkerSize')) || 24;
+function makeIcon(color, invalid) {
+  const half = markerSize / 2;
+  return L.divIcon({
+    className: '',
+    html: `<div class="leaflet-div-icon-label${invalid ? ' invalid' : ''}" style="width:${markerSize}px;height:${markerSize}px;background:${color}"></div>`,
+    iconSize: [markerSize, markerSize], iconAnchor: [half, half]
+  });
+}
+function showPhotoDebounced(p) {
+  if (hoverTimer) clearTimeout(hoverTimer);
+  if (p.name === lastHoverName) return;
+  hoverTimer = setTimeout(() => { lastHoverName = p.name; showPhoto(p); }, HOVER_DEBOUNCE_MS);
+}
+
+function colorForCategory(cat, allCategories) {
+  const idx = allCategories.indexOf(cat);
+  const hue = Math.round((idx * 360) / allCategories.length);
+  return `hsl(${hue}, 80%, 45%)`;
+}
+
+const WINDA_SCHODY = 'Winda/Schody';
+
+function categoryFor(p) {
+  return /winda|schody/i.test(p.name) ? WINDA_SCHODY : p.height;
+}
+
+function categoryLabel(cat) {
+  return cat === WINDA_SCHODY ? WINDA_SCHODY : `Poziom ${cat}`;
+}
+
+// opis może mieć wiele linii (jedno miejsce w linii), a plik jest liniowy:
+// w CSV newline zapisujemy jako \n, a literalny backslash jako \\
+function encodeDescription(s) {
+  return String(s).replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n');
+}
+function decodeDescription(s) {
+  return s.replace(/\\(n|\\)/g, (m, c) => (c === 'n' ? '\n' : '\\'));
+}
+
+function parseCSV(text) {
+  text = text.replace(/^﻿/, '');
+  const lines = text.split(/\r?\n/).filter(l => l.length > 0);
+  const header = lines[0].split(';');
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const parts = lines[i].split(';');
+    const name = parts[0];
+    const [latStr, lonStr] = parts[1].split(',');
+    const lat = parseFloat(latStr);
+    const lon = parseFloat(lonStr);
+    const timestamp = parts[2];
+    const height = parts[3] !== undefined ? parseFloat(parts[3]) : 0;
+    // description is free text and may itself contain ';' - it's always the
+    // last field, so rejoining anything past index 4 reconstructs it exactly
+    const description = parts.length > 4 ? decodeDescription(parts.slice(4).join(';')) : '';
+    rows.push({
+      name, lat, lon, timestamp, height, description,
+      rowIndex: i + 1, // matches original file line number
+      valid: !(lat === 0 && lon === 0)
+    });
+  }
+  return rows;
+}
+
+function fillMissingCoords(rows) {
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].valid) continue;
+    let before = null, after = null;
+    for (let j = i - 1; j >= 0; j--) { if (rows[j].valid) { before = rows[j]; break; } }
+    for (let j = i + 1; j < rows.length; j++) { if (rows[j].valid) { after = rows[j]; break; } }
+    if (before && after) {
+      rows[i].lat = (before.lat + after.lat) / 2;
+      rows[i].lon = (before.lon + after.lon) / 2;
+    } else if (before) {
+      rows[i].lat = before.lat; rows[i].lon = before.lon;
+    } else if (after) {
+      rows[i].lat = after.lat; rows[i].lon = after.lon;
+    }
+  }
+}
+
+function buildMap(rows) {
+  points = rows;
+  fillMissingCoords(points);
+
+  const categories = sortedCategories();
+  floorColors = {};
+  categories.forEach(c => floorColors[c] = colorForCategory(c, categories));
+
+  // category toggles
+  const floorsDiv = document.getElementById('floors');
+  floorsDiv.innerHTML = '';
+  floorLayers = {};
+  categories.forEach(c => {
+    const layer = L.layerGroup().addTo(map);
+    floorLayers[c] = layer;
+    const label = document.createElement('label');
+    label.innerHTML = `<input type="checkbox" checked data-category="${c}"> <span class="swatch" style="background:${floorColors[c]}"></span> ${categoryLabel(c)}`;
+    floorsDiv.appendChild(label);
+    label.querySelector('input').addEventListener('change', (e) => {
+      if (e.target.checked) layer.addTo(map); else map.removeLayer(layer);
+    });
+  });
+
+  points.forEach(p => {
+    const category = categoryFor(p);
+    // positions are finalized - dragging is deliberately disabled now, see tooltipHtml() for hover content
+    const marker = L.marker([p.lat, p.lon], { draggable: false, icon: makeIcon(floorColors[category], !p.valid) })
+      .bindTooltip(() => tooltipHtml(p));
+    marker.addTo(floorLayers[category]);
+    marker.on('mouseover', () => { if (!pinnedPoint) showPhotoDebounced(p); });
+    marker.on('click', () => selectPoint(p));
+    p.marker = marker;
+  });
+
+  const valid = points.filter(p => p.rowIndex && !isNaN(p.lat));
+  if (valid.length) {
+    const bounds = L.latLngBounds(valid.map(p => [p.lat, p.lon]));
+    map.fitBounds(bounds, { padding: [40,40] });
+  }
+
+  renderList();
+  document.getElementById('status').textContent = `${points.length} punktow wczytanych. Kliknij punkt, aby edytowac nazwe i opis.`;
+}
+
+function sortedCategories() {
+  return [...new Set(points.map(p => categoryFor(p)))].sort((a, b) => {
+    if (a === WINDA_SCHODY) return 1;
+    if (b === WINDA_SCHODY) return -1;
+    return a - b;
+  });
+}
+
+function renderList(filter = '') {
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  const matching = points.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()));
+
+  // grouped by Z layer (same category/order as the floor toggles above),
+  // so related points sit together instead of one long flat list
+  sortedCategories().forEach(cat => {
+    const inGroup = matching.filter(p => categoryFor(p) === cat);
+    if (!inGroup.length) return;
+
+    const header = document.createElement('div');
+    header.className = 'group-header';
+    header.innerHTML = `<span class="swatch" style="background:${floorColors[cat]}"></span>${categoryLabel(cat)}`;
+    list.appendChild(header);
+
+    inGroup.forEach(p => {
+      const div = document.createElement('div');
+      div.className = 'item' + (p.valid ? '' : ' invalid');
+      div.dataset.rowIndex = p.rowIndex;
+      const descPreview = p.description ? `<br><span class="desc">${escapeHtml(p.description).replace(/\n/g, '<br>')}</span>` : '';
+      div.innerHTML = `<span class="name">${escapeHtml(p.name)}</span><br><span class="coords">${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}</span>${descPreview}`;
+      div.addEventListener('click', () => {
+        map.setView([p.lat, p.lon], 21);
+        selectPoint(p);
+        p.marker.openTooltip();
+      });
+      div.addEventListener('mouseenter', () => { if (!pinnedPoint) showPhotoDebounced(p); });
+      list.appendChild(div);
+    });
+  });
+}
+
+const PHOTO_DIR = 'photos_360';
+
+(function setupResize() {
+  const panel = document.getElementById('photoPanel');
+  const minW = 160, minH = 140;
+
+  function startDrag(e, resizeW, resizeH) {
+    e.preventDefault();
+    const startX = e.clientX, startY = e.clientY;
+    const startWidth = panel.offsetWidth, startHeight = panel.offsetHeight;
+    function onMove(ev) {
+      if (resizeW) {
+        const newWidth = Math.max(minW, startWidth + (ev.clientX - startX));
+        panel.style.width = newWidth + 'px';
+      }
+      if (resizeH) {
+        const newHeight = Math.max(minH, startHeight + (ev.clientY - startY));
+        panel.style.height = newHeight + 'px';
+      }
+      if (currentViewer) currentViewer.resize();
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+
+  document.getElementById('resizeRight').addEventListener('mousedown', e => startDrag(e, true, false));
+  document.getElementById('resizeBottom').addEventListener('mousedown', e => startDrag(e, false, true));
+  document.getElementById('resizeCorner').addEventListener('mousedown', e => startDrag(e, true, true));
+})();
+
+let currentViewer = null;
+
+function showPhoto(p) {
+  const nameInput = document.getElementById('photoNameInput');
+  const descInput = document.getElementById('photoDescInput');
+  const container = document.getElementById('panoViewer');
+  const editing = pinnedPoint === p;
+
+  nameInput.value = p.name;
+  nameInput.disabled = !editing;
+  descInput.value = p.description || '';
+  descInput.disabled = !editing;
+  document.getElementById('unpinBtn').style.display = editing ? '' : 'none';
+  // remember which point these fields belong to, so a blur/Enter commit
+  // can't accidentally apply to whatever got hovered in the meantime
+  nameInput.dataset.forRow = p.rowIndex;
+  descInput.dataset.forRow = p.rowIndex;
+
+  if (currentViewer) { currentViewer.destroy(); currentViewer = null; }
+  container.innerHTML = '';
+
+  const url = encodeURI(`${PHOTO_DIR}/${p.name}.jpg`);
+  const test = new Image();
+  test.onload = () => {
+    currentViewer = pannellum.viewer('panoViewer', {
+      type: 'equirectangular',
+      panorama: url,
+      autoLoad: true,
+      showZoomCtrl: true,
+      compass: false
+    });
+  };
+  test.onerror = () => { if (!editing) nameInput.value = p.name + ' (brak zdjecia)'; };
+  test.src = url;
+}
+
+// click a marker or a list item to "pin" it: stops hover-preview from
+// stealing the panel, and makes the name/description fields editable
+function selectPoint(p) {
+  pinnedPoint = p;
+  showPhoto(p);
+}
+
+function unpinPoint() {
+  pinnedPoint = null;
+  document.getElementById('unpinBtn').style.display = 'none';
+  document.getElementById('photoNameInput').disabled = true;
+  document.getElementById('photoDescInput').disabled = true;
+}
+document.getElementById('unpinBtn').addEventListener('click', unpinPoint);
+
+function findPointByRowIndex(rowIndex) {
+  return points.find(p => String(p.rowIndex) === String(rowIndex));
+}
+
+function commitDescriptionEdit(p, value) {
+  if (value === (p.description || '')) return;
+  p.description = value;
+  p.marker.setTooltipContent(tooltipHtml(p));
+  renderList(document.getElementById('search').value);
+  saveToServer();
+}
+document.getElementById('photoDescInput').addEventListener('change', (e) => {
+  const p = findPointByRowIndex(e.target.dataset.forRow);
+  if (p) commitDescriptionEdit(p, e.target.value);
+});
+
+function commitNameEdit(p, newNameRaw) {
+  const newName = newNameRaw.trim();
+  if (!newName || newName === p.name) {
+    document.getElementById('photoNameInput').value = p.name; // revert an empty/unchanged edit
+    return;
+  }
+  if (points.some(other => other !== p && other.name === newName)) {
+    alert(`Nazwa "${newName}" jest juz uzyta przez inny punkt.`);
+    document.getElementById('photoNameInput').value = p.name;
+    return;
+  }
+  const status = document.getElementById('status');
+  status.textContent = `Zmiana nazwy ${p.name} -> ${newName}...`;
+  fetch('/rename', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ oldName: p.name, newName }),
+  })
+    .then(r => { if (!r.ok) throw new Error('rename failed'); return r.json(); })
+    .then(result => {
+      const oldName = p.name;
+      p.name = newName;
+      p.marker.setTooltipContent(tooltipHtml(p));
+      renderList(document.getElementById('search').value);
+      return saveToServer().then(() => {
+        status.textContent = result.photoRenamed
+          ? `Zmieniono nazwe ${oldName} -> ${newName} (zdjecie tez przeniesione).`
+          : `Zmieniono nazwe ${oldName} -> ${newName} (uwaga: brak dopasowanego zdjecia do przeniesienia).`;
+      });
+    })
+    .catch(() => {
+      alert('Nie udalo sie zmienic nazwy - sprawdz czy server.py dziala.');
+      document.getElementById('photoNameInput').value = p.name;
+    });
+}
+document.getElementById('photoNameInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') e.target.blur();
+});
+document.getElementById('photoNameInput').addEventListener('change', (e) => {
+  const p = findPointByRowIndex(e.target.dataset.forRow);
+  if (p) commitNameEdit(p, e.target.value);
+});
+
+document.getElementById('search').addEventListener('input', (e) => renderList(e.target.value));
+
+function applyMarkerSize() {
+  points.forEach(p => {
+    if (p.marker) p.marker.setIcon(makeIcon(floorColors[categoryFor(p)], !p.valid));
+  });
+}
+
+const sizeSlider = document.getElementById('sizeSlider');
+sizeSlider.value = markerSize;
+document.getElementById('sizeValue').textContent = markerSize;
+sizeSlider.addEventListener('input', (e) => {
+  markerSize = Number(e.target.value);
+  document.getElementById('sizeValue').textContent = markerSize;
+  localStorage.setItem('mapEditorMarkerSize', markerSize);
+  applyMarkerSize();
+});
+
+function csvText() {
+  const lines = ['name;latitude;longitude;timestamp;height;description'];
+  points.forEach(p => {
+    const desc = encodeDescription(p.description || '');
+        lines.push(`${p.name};${p.lat},${p.lon};${p.timestamp};${p.height};${desc}`);
+  });
+  return lines.join('\n');
+}
+
+// returns the save promise so callers that want to show their OWN final
+// status message (e.g. the rename flow) can chain after it, instead of
+// racing it - this used to be fire-and-forget, which meant the generic
+// "Zapisano" text could land a moment after and silently clobber a more
+// specific message a caller had just set synchronously
+function saveToServer() {
+  const status = document.getElementById('status');
+  return fetch('/save', { method: 'POST', body: csvText() })
+    .then(r => {
+      if (!r.ok) throw new Error('save failed');
+      status.textContent = `Zapisano ${new Date().toLocaleTimeString()}`;
+    })
+    .catch(() => { status.textContent = 'Blad zapisu - sprawdz czy server.py dziala'; });
+}
+
+document.getElementById('saveBtn').addEventListener('click', saveToServer);
+
+window.addEventListener('DOMContentLoaded', () => {
+  fetch('location.csv')
+    .then(r => {
+      if (!r.ok) throw new Error('csv not found');
+      return r.text();
+    })
+    .then(text => buildMap(parseCSV(text)))
+    .catch(err => {
+      console.error(err);
+      document.getElementById('status').textContent = 'Blad wczytywania: ' + err.message;
+    });
+});
+</script>
+</body>
+</html>

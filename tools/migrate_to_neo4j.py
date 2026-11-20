@@ -14,7 +14,7 @@ from pathlib import Path
 
 FOLDER = Path(__file__).parent
 EXPORT_PATH = FOLDER / "graph_export.json"
-ENV_PATH = FOLDER.parent / ".env"
+ENV_PATH = FOLDER.parent / "WirtualnaMapa" / ".env"
 CYPHER_OUT_PATH = FOLDER / "migration.cypher"
 
 NODE_FIELDS = ["id", "name", "x", "y", "z", "description", "imageCid"]

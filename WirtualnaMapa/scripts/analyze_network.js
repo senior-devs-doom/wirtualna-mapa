@@ -3,7 +3,7 @@
 // Użycie (baza musi działać, .env jak dla aplikacji):
 //   node scripts/analyze_network.js [plik_wyjściowy.json]
 //
-// Zamiast bazy można użyć pliku: GRAPH_JSON=data/graph_export.json node scripts/analyze_network.js
+// Zamiast bazy można użyć pliku: GRAPH_JSON=../tools/graph_export.json node scripts/analyze_network.js
 // Nic nie zapisuje w bazie ani w plikach danych; wynik trafia tylko do wskazanego pliku JSON.
 require('dotenv').config({ quiet: true });
 const fs = require('fs');

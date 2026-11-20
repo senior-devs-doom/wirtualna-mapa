@@ -1747,7 +1747,6 @@
 
         photoCache = new PhotoCache({
           gateways: ipfsGateways,
-          localUrl: item => `/photos/${encodeURIComponent(item.name)}.jpg`,
           onChange: updateCacheStatus,
           maxBackground: navigator.connection && navigator.connection.saveData ? 1 : 3,
         });

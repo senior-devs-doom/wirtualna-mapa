@@ -1,0 +1,506 @@
+{
+ "Maksimus 1": {
+  "cid": "bafybeidn54endvpxqa2xbdpwt6shp6lzboyr3md3ivupb4s5tpfdvgfayq",
+  "sha256": "cf36dd66c45973b668c875104359e735c39ba0278f49b7d571e7e64811f15eb0",
+  "bytes": 486156,
+  "pinata_id": "01a15e8e-b365-736f-b4a4-771abe2d6400",
+  "uploaded_at": "2026-10-21T15:03:12"
+ },
+ "Maksimus 2": {
+  "cid": "bafybeid4s65ipfu4bpzozhn3gjjufgpdsuugn6qo6a5vubud25ofpzgen4",
+  "sha256": "66ab5edbf4e2dd5b776327f218f43a3e6d019690b4a1a258a556fa502bf9f9c9",
+  "bytes": 553645,
+  "pinata_id": "01a15e8f-37ef-7487-9d4f-bea78fbea2e8",
+  "uploaded_at": "2026-10-21T15:03:28"
+ },
+ "Poziom  4 Korytarz 2": {
+  "cid": "bafybeibb5gvopxjvxfh65jcfiav3ergxq5ao2rpeewafajdx6z74tyngvu",
+  "sha256": "17258454739d3a7a2c79f9d80d128d2ea2a867c033371d3c7e02b95e7af834b6",
+  "bytes": 573812,
+  "pinata_id": "01a15e8f-3ec3-7909-ba42-a4d49140fed0",
+  "uploaded_at": "2026-10-21T15:03:30"
+ },
+ "Poziom -1 Korytarz 1": {
+  "cid": "bafybeie2cevz4owgn2nlwalyht3xxxg7yfcto3c4gos2dgf4u3uml3rwuy",
+  "sha256": "0def3f99686517250719e13de2600c19a6fa40631bff899279f4032b0c061c45",
+  "bytes": 485488,
+  "pinata_id": "01a15e8f-47b4-7be4-8573-c65f9c671295",
+  "uploaded_at": "2026-10-21T15:03:31"
+ },
+ "Poziom -1 Korytarz 2": {
+  "cid": "bafybeiddvxadaqwj5e2up2etim4rmwpgnauo3kkbginon7rioikbjj5tfm",
+  "sha256": "ea0b37932e188467f4a7c266a94e2bf18284bcb578ec010246c01f33033d46f3",
+  "bytes": 455624,
+  "pinata_id": "01a15e8f-4e36-7463-9482-d51406067d53",
+  "uploaded_at": "2026-10-21T15:03:33"
+ },
+ "Poziom -1 Korytarz 3": {
+  "cid": "bafybeicn4s3z2xmltng2shrsmjrrxrjsdb6k7mnsydoroesxgzbrdyw3j4",
+  "sha256": "8d3d85e489392ee5bd602909a279fee10b9bd85aa339ad527adad5c3c2a9f9ce",
+  "bytes": 365513,
+  "pinata_id": "01a15e8f-5589-7bed-8773-eb478ab8e6fb",
+  "uploaded_at": "2026-10-21T15:03:36"
+ },
+ "Poziom -1 Korytarz 4": {
+  "cid": "bafybeife34tokozilacvq7cufxfjxismebornalhb2rk3sseak2qvjzumi",
+  "sha256": "9cd20af864835f8e221ed6c4a3e78fc4c0fd771b6eb78964a94740544d0cb5bb",
+  "bytes": 614600,
+  "pinata_id": "01a15e8f-5fb9-7f91-8ad7-8b50dc341ee5",
+  "uploaded_at": "2026-10-21T15:03:38"
+ },
+ "Poziom -1 Korytarz 5": {
+  "cid": "bafybeihcaui7xm2umm6avpwth3ne3e2h3b4voiwkbaib7ertd4gkikkz4a",
+  "sha256": "a8d584971a6ff4943b0a9261b054e047b5ef813c1b5a8c3fd5c2f15770dde7b1",
+  "bytes": 498992,
+  "pinata_id": "01a15e8f-666c-72aa-9977-77d50c5ea481",
+  "uploaded_at": "2026-10-21T15:03:39"
+ },
+ "Poziom 1 Klatka Schodowa": {
+  "cid": "bafybeia6poe5ce223okrmtkx5theucjggtzqzdugmbg6xawh3m6iympone",
+  "sha256": "de00f1ca79ad217b389019fb59ad644eeb64d04affb2622ec976f1f9d6b6f101",
+  "bytes": 620083,
+  "pinata_id": "01a15e8f-6d28-750e-bbdb-0f3684607229",
+  "uploaded_at": "2026-10-21T15:03:41"
+ },
+ "Poziom 1 Korytarz 1": {
+  "cid": "bafybeihppz37madmbilqonb6vboxtj4d6abyeexuyduj3kskaxowiwlndm",
+  "sha256": "aa61e960a6ab76179d4aec192f2431afb2324c26e2818cf50624acdd41006e77",
+  "bytes": 646415,
+  "pinata_id": "01a15e8f-7416-710a-987c-060453f18814",
+  "uploaded_at": "2026-10-21T15:03:43"
+ },
+ "Poziom 1 Korytarz 10": {
+  "cid": "bafybeigkt5cu2vgz46fc4cdwvhxecjxk7cd5xukwulyia53n5dx2oxslja",
+  "sha256": "807bfd6b41664d988dfc44c072cac0b6c2727d914f32b36de7bb8ba162576a47",
+  "bytes": 520288,
+  "pinata_id": "01a15e8f-7b8a-79b7-8eb0-fe19eefd5e81",
+  "uploaded_at": "2026-10-21T15:03:45"
+ },
+ "Poziom 1 Korytarz 2": {
+  "cid": "bafybeialr3ruvozw3sac2djmuhdr5e2fkf3hz5i76ijo7ca7ce7tegi3ve",
+  "sha256": "8150ee48c7f5c8048547af267d496e09130e69afa53f8f28f54680a6b51f8450",
+  "bytes": 538331,
+  "pinata_id": "01a15e8f-8243-74c3-a1d9-cf8ec456d7ec",
+  "uploaded_at": "2026-10-21T15:03:47"
+ },
+ "Poziom 1 Korytarz 3": {
+  "cid": "bafybeiakhuz5gwxhvsf27i2ncbvprh5rwurupzpfooeic4blm7nvdn3jly",
+  "sha256": "0236e3037293cd8ea5aee3b0621aa2819204943d80fbd3950690748c5ae57c5d",
+  "bytes": 536660,
+  "pinata_id": "01a15e8f-8904-7928-be4f-5f45ed411b8c",
+  "uploaded_at": "2026-10-21T15:03:48"
+ },
+ "Poziom 1 Korytarz 4": {
+  "cid": "bafybeibt33mk4w7svtlbmhscaikhrguxff2iiwrtpjzqxpypwpfkdu5yem",
+  "sha256": "6912fd508fa6c12d6ffb10a3faed622de07baef9017f3b3dd45a0e1506764fda",
+  "bytes": 605828,
+  "pinata_id": "01a15e8f-8fb5-7022-b482-6498b1338ea9",
+  "uploaded_at": "2026-10-21T15:03:50"
+ },
+ "Poziom 1 Korytarz 5": {
+  "cid": "bafybeihrocvangqgbpk4i22bgke5krm2yx2ju7luij2ljeocpjnoyoilqi",
+  "sha256": "d9450f082e16b169387f7a80737cd923f1baa13a2a7741a234e7c3ec55a276a9",
+  "bytes": 573043,
+  "pinata_id": "01a15e8f-9639-78be-bc50-79dc8d8fd6c4",
+  "uploaded_at": "2026-10-21T15:03:52"
+ },
+ "Poziom 1 Korytarz 6": {
+  "cid": "bafybeifgdzvfyz635p5aphckpzenss4tbvtpawxe3sn24vslp66jkzx4qu",
+  "sha256": "fef3fb523725a66b12de0442b001bd160db8f4f4ba9d6b40c348cd61ef0752ed",
+  "bytes": 534065,
+  "pinata_id": "01a15e8f-9d03-72b6-a36c-240f6b7edc33",
+  "uploaded_at": "2026-10-21T15:03:54"
+ },
+ "Poziom 1 Korytarz 7": {
+  "cid": "bafybeiebqvw4nzza5nu6f4qihgcblqivb4bskjma7e5i3x6d3s5zmzlbxy",
+  "sha256": "77a71c019eadac29e7e42e0b24fe5788bf82212dfec5f1b52d5982dce8e23ba5",
+  "bytes": 473433,
+  "pinata_id": "01a15e8f-a4b0-7030-9874-b08ee92da52c",
+  "uploaded_at": "2026-10-21T15:03:56"
+ },
+ "Poziom 1 Korytarz 8": {
+  "cid": "bafybeihycaclxbxmqmtyab57fp4fxjz3ikevtacbhmzppi56bi36jpf6nm",
+  "sha256": "1cbb6d7224555c8e214b93c791da52b1c960e31d715df6655614b5edd33fb435",
+  "bytes": 639045,
+  "pinata_id": "01a15e8f-acf8-7915-8f9c-1a32d043f6d1",
+  "uploaded_at": "2026-10-21T15:03:57"
+ },
+ "Poziom 1 Korytarz 9": {
+  "cid": "bafybeigorsc7qktjfgo7h2nsgdupz5unlgf3j2x4dd5kr3mcbv2wzxqbzy",
+  "sha256": "c2195b28f1e3c29e5ac91408bab891f394ea3d1e378d532d91c0542faa2150c1",
+  "bytes": 493950,
+  "pinata_id": "01a15e8f-b3c0-7751-aa40-ef7544cdd3b4",
+  "uploaded_at": "2026-10-21T15:03:59"
+ },
+ "Poziom 2 Klatka Schodowa": {
+  "cid": "bafybeidk4xd2fesxgiv5fbnamp3l6s2orlp2jryfbqsekith5l6fy5n2ze",
+  "sha256": "3dd6ea0b48230e6d3d83312bdffadec458e1adef84a967b10a318dc5d1c1cd0d",
+  "bytes": 558530,
+  "pinata_id": "01a15e8f-bb53-7531-abcb-9d543377a8f3",
+  "uploaded_at": "2026-10-21T15:04:02"
+ },
+ "Poziom 2 Korytarz 1": {
+  "cid": "bafybeihizra4dtxvcqgk5psqrj6twc5ujt37r7hmq2masyandvbjhwwaf4",
+  "sha256": "8649d0f26121dbb4837bab54c3d844ac1ff7fafd2cf835a5797a6d28e9d458fb",
+  "bytes": 633540,
+  "pinata_id": "01a15e8f-c484-7d84-89be-36e54507e7c7",
+  "uploaded_at": "2026-10-21T15:04:04"
+ },
+ "Poziom 2 Korytarz 2": {
+  "cid": "bafybeiaesowddbdzsf66ytcfv6cp5rzg42up3usxscnnbmpug3lwmtnlne",
+  "sha256": "bce30d202c49e3d78cdb04cfc6d9e7d1ff187b7ce8172dd32da960602f35d057",
+  "bytes": 527025,
+  "pinata_id": "01a15e8f-cbf0-7c3a-a431-afb9f01aac6b",
+  "uploaded_at": "2026-10-21T15:04:05"
+ },
+ "Poziom 2 Korytarz 3": {
+  "cid": "bafybeibksm6xrjhcrqoolh2vgi6qeu4w2j6mgjhlgkzafo67uctl6ywfzi",
+  "sha256": "189f1af4b6d28169297d04d4d86368deddb85320d573c180272014e9b2a60a1f",
+  "bytes": 575928,
+  "pinata_id": "01a15e8f-d246-78e4-9112-1b0e1f2dbe09",
+  "uploaded_at": "2026-10-21T15:04:07"
+ },
+ "Poziom 2 Korytarz 4": {
+  "cid": "bafybeifxvmspoqadgpxucxct4i6qyasctszbiyy6go45apl2ylrphcmuxq",
+  "sha256": "137d5c9e2b53f90ed4b1f50fabb1a6ef8302ff49222eafe906a94044322443cc",
+  "bytes": 501876,
+  "pinata_id": "01a15e8f-d8fe-7567-9626-0f94fd87c5d7",
+  "uploaded_at": "2026-10-21T15:04:09"
+ },
+ "Poziom 2 Korytarz 5": {
+  "cid": "bafybeicifjcy7u7nkj2o4z6hbz32k7ynq6repyvx7h7oeiwa42je4asevi",
+  "sha256": "1881501810d8845f761f7a4ef37588a4345da8013b5269597bd5c7017286246d",
+  "bytes": 376913,
+  "pinata_id": "01a15e8f-df8b-7e8a-b4d8-62cbd2e79e69",
+  "uploaded_at": "2026-10-21T15:04:10"
+ },
+ "Poziom 3 Klatka Schodowa": {
+  "cid": "bafybeigof6zkzxl3hw3ezj5n73rr5wzybkvnll35dvyk276aokzb4534xa",
+  "sha256": "540955c14956f2a93756895c3fe694b08d251156111863c74aade48f91a48f59",
+  "bytes": 494029,
+  "pinata_id": "01a15e8f-e5be-74bd-9ed3-a22718bb4de7",
+  "uploaded_at": "2026-10-21T15:04:12"
+ },
+ "Poziom 3 Korytarz 1": {
+  "cid": "bafybeidegt6cvngbsbm6cs4mpmvioxy7mm6s6yq3e5ofyqz3kqtdch4a5q",
+  "sha256": "7512d8d92666a011ff822b98f3b0c1d0980f1e9b51f7be5bb30e94caab0c6a46",
+  "bytes": 563959,
+  "pinata_id": "01a15e8f-ec32-7195-8c1c-47b84655c871",
+  "uploaded_at": "2026-10-21T15:04:14"
+ },
+ "Poziom 3 Korytarz 2": {
+  "cid": "bafybeicmrdbevfiavpmn6ioofu62nporezymscwumqmzj4kojycgj5peku",
+  "sha256": "1da17b07aab26442ec3d55098e72235599682761b485ba10ec1536f629c660e0",
+  "bytes": 552533,
+  "pinata_id": "01a15e8f-f544-78b9-946c-550fd35372de",
+  "uploaded_at": "2026-10-21T15:04:16"
+ },
+ "Poziom 3 Korytarz 3": {
+  "cid": "bafybeigdvlgysvnxzrseapwckh7x6ud45olmi4ea6kcvg3bpoleizhpvrq",
+  "sha256": "fbd5caa72750cde7cda5cae7f37461b78c1768e271afd63f01c217f5596ad7b4",
+  "bytes": 499175,
+  "pinata_id": "01a15e8f-fc09-7a0b-907c-44b1487a24d6",
+  "uploaded_at": "2026-10-21T15:04:18"
+ },
+ "Poziom 4 Biblioteka": {
+  "cid": "bafybeihfqfos4ae3xghrrbkf4wwe5xth34kopq6yw6atw3xnryc7pxwejm",
+  "sha256": "3f73f01e03e77561799a577630e4a24b4bf3685b653554f1a732ff4182bb9f42",
+  "bytes": 667735,
+  "pinata_id": "01a15e90-0314-7432-a474-306dc0d052de",
+  "uploaded_at": "2026-10-21T15:04:20"
+ },
+ "Poziom 4 Klatka Schodowa": {
+  "cid": "bafybeigxstr4y6sexnxdd26szk5rxbbl6pzjgtrvu4kmixyxt75ay6rpl4",
+  "sha256": "b45e4a4a6288f01d71580e4a4f0f6a778f618c9c400ddf7206fa535059694085",
+  "bytes": 637600,
+  "pinata_id": "01a15e90-09e0-7163-aa86-4e89c8d71859",
+  "uploaded_at": "2026-10-21T15:04:21"
+ },
+ "Poziom 4 Korytarz 1": {
+  "cid": "bafybeiahzhmraias7y3deec3odljukcht6naudnyacbikatrresskedn4y",
+  "sha256": "f86fdecd93385635b77f228c5293e9af2458742e7ea25c5a286d9dc2f6af4f6a",
+  "bytes": 665531,
+  "pinata_id": "01a15e90-1132-7756-ad39-31dcbcaa5722",
+  "uploaded_at": "2026-10-21T15:04:23"
+ },
+ "Poziom 4 Korytarz 3": {
+  "cid": "bafybeice6srldmhbhso7huxme2dk3f4fs2alze2syetzqhun6he6lbwt4m",
+  "sha256": "831d3524f21f4557de16c52877c5f778200e9b506ccf851f0ca042003716ba50",
+  "bytes": 589262,
+  "pinata_id": "01a15e90-1833-752d-a2ea-a0a6e1b86f54",
+  "uploaded_at": "2026-10-21T15:04:25"
+ },
+ "Poziom 4 Korytarz 4": {
+  "cid": "bafybeie2wqhjrcxwkdnmgtuhqab34nie6h4q4ytoxgx2eq24byv2lsbyga",
+  "sha256": "812ce4fd54741f723f74c6ff5025d0145035d75d388b0b2b1e04aeace7c6a576",
+  "bytes": 499476,
+  "pinata_id": "01a15e90-1fc3-7362-8922-0ef67bb9352e",
+  "uploaded_at": "2026-10-21T15:04:27"
+ },
+ "Poziom 4 Korytarz 5": {
+  "cid": "bafybeifsk5y3zbwyvrxfw7yzsxxhqdvw3toylt37nf7f2ebuvmx4b4suh4",
+  "sha256": "51145667063dd0aa4ef054fdba0500a74a411c0b878760c379796305d28fc9d9",
+  "bytes": 614980,
+  "pinata_id": "01a15e90-2718-731b-8af9-d13cbac40b8d",
+  "uploaded_at": "2026-10-21T15:04:29"
+ },
+ "Schody Centralne 1": {
+  "cid": "bafybeihouxfwe3iu4cqx7nef7n2jdndhi75pfpiillf5p5eoy7dlyd5tg4",
+  "sha256": "ee29f86f68b7be31c0eefd7c98fb0344f2a52da23a990301aa9946520553d026",
+  "bytes": 455509,
+  "pinata_id": "01a15e90-2de1-7a4e-b7ce-d895730d0363",
+  "uploaded_at": "2026-10-21T15:04:30"
+ },
+ "Schody Centralne 2": {
+  "cid": "bafybeieqdy2cmgkp7yk5corhzvtt27f2yisw63xnwqlind36ytt5plc26y",
+  "sha256": "0ea17b251078e3782a5e85c1b200e7b63b57bbca502b491d3ccae3a2e758fe6c",
+  "bytes": 477912,
+  "pinata_id": "01a15e90-3428-7b8d-a1e4-d8956ee2ae4c",
+  "uploaded_at": "2026-10-21T15:04:32"
+ },
+ "Schody Centralne 3": {
+  "cid": "bafybeifs322gxeivs6p5bgjmoqx6anjxel4otriqr5ndbptseqli5jjthe",
+  "sha256": "c64f396b0348e11f4312fdec6f3663556a7586dad29a87cd37623baacfa07715",
+  "bytes": 435087,
+  "pinata_id": "01a15e90-3bb0-7c24-ae46-df04bf63c4f9",
+  "uploaded_at": "2026-10-21T15:04:34"
+ },
+ "Schody Centralne 4": {
+  "cid": "bafybeietwnfpbbpt2g7keijzrq3fz3743yvdin4ha7gqcjwgxnlzprqmdm",
+  "sha256": "449d61b47b7b08a116a4c8c84a3d929edaa91d57539484decf450ab7de5511fc",
+  "bytes": 418926,
+  "pinata_id": "01a15e90-4228-7e72-85c4-4dd7593fd1a5",
+  "uploaded_at": "2026-10-21T15:04:36"
+ },
+ "Schody Centralne 5": {
+  "cid": "bafybeifeh45e3lka7ls7ruekciw7nn7tdugzwlgwwatun44zn2bjjk2ici",
+  "sha256": "9ba123ae18dd0294ba1c3889d2bd540bd2b61c329c6656688f799587f41945bb",
+  "bytes": 500800,
+  "pinata_id": "01a15e90-4888-73fd-8425-a03283b55eae",
+  "uploaded_at": "2026-10-21T15:04:38"
+ },
+ "Schody Wschodnie 1": {
+  "cid": "bafybeic3vsaezd3cap4siqoas4odvp2jk4wbes4rvvrmkqdr7jpai4z6a4",
+  "sha256": "93ea8c7736becce843c29412a096883c74a7058029f84e874034a78da27d5b78",
+  "bytes": 513926,
+  "pinata_id": "01a15e90-5046-7a4a-97db-a27193799e05",
+  "uploaded_at": "2026-10-21T15:04:39"
+ },
+ "Schody Wschodnie 2": {
+  "cid": "bafybeidsgzroee7kfo7btci7swkegetb73n5buh54bjdunlovomvb23ype",
+  "sha256": "3a62e89db94435a6d4054ee3aa4768b59c28637fbe84e8c65d79c9b1a691c173",
+  "bytes": 474856,
+  "pinata_id": "01a15e90-56f2-7aeb-b4bb-eba62bdc9d51",
+  "uploaded_at": "2026-10-21T15:04:41"
+ },
+ "Schody Wschodnie 3": {
+  "cid": "bafybeifhfq43yy7r7f5ejojnzs2jzxouroqpoz5no2uiye3nvgainaligq",
+  "sha256": "e839dbf08a846a750f1439004bc63eeaee2e117fd6165a5a6bd601635a6efd36",
+  "bytes": 470336,
+  "pinata_id": "01a15e90-5d4e-7327-9093-c171d2abf2fa",
+  "uploaded_at": "2026-10-21T15:04:43"
+ },
+ "Schody Wschodnie 4": {
+  "cid": "bafybeih36dj6uchyco6dzkaalnjxx4aih2wsmxj4qwfnejyiyddn7e4rfq",
+  "sha256": "3c0c793d3a4da985e7cc59a6ae5f0e68b4b499eb31ae43e64c6dd7258fb1764e",
+  "bytes": 504265,
+  "pinata_id": "01a15e90-63a7-76dd-8c13-8e5ecb128a24",
+  "uploaded_at": "2026-10-21T15:04:44"
+ },
+ "Schody Wschodnie 5": {
+  "cid": "bafybeif4vbgfsv274hist26g4tpjtmrrfnl5sjvq6a2q3nqlsbw6azbodu",
+  "sha256": "ae717df7ed6e391f94d2fd63efc5c25ab24054cc353a530220207d56e4c70d11",
+  "bytes": 600625,
+  "pinata_id": "01a15e90-6a60-7aae-b21b-9e5cd7246226",
+  "uploaded_at": "2026-10-21T15:04:46"
+ },
+ "Schody Zachodnie 1": {
+  "cid": "bafybeibwfernjdshooonly56e4bukb3q4fpknanm3k7254vqlca4goayvy",
+  "sha256": "aee06cc78aa974939a63d0c19c06d46fc798a03636b16eb328513019138581ec",
+  "bytes": 491614,
+  "pinata_id": "01a15e90-7141-74e1-a126-c4471d689377",
+  "uploaded_at": "2026-10-21T15:04:48"
+ },
+ "Schody Zachodnie 2": {
+  "cid": "bafybeidnk7pf2g3yymzju63h2laiqmwcr457neqmttbdfmdfujed3sk76m",
+  "sha256": "b6581436e19d8ccd446f2ff5acf5d35a56e9376ce69b8e5c53e73fc56c1394ee",
+  "bytes": 458492,
+  "pinata_id": "01a15e90-7916-7c1c-9f2d-12d3b2bbb12b",
+  "uploaded_at": "2026-10-21T15:04:50"
+ },
+ "Schody Zachodnie 3": {
+  "cid": "bafybeih3k54chcjr6m7r3x2ihazou4m7trfcte4qomuoovn645jkay372m",
+  "sha256": "23725c967767f70556a89b5d98beee6b24bd76fcddcbce1c30d22a15fce01b89",
+  "bytes": 496712,
+  "pinata_id": "01a15e90-7f82-72e9-8ab2-af3e764f8acd",
+  "uploaded_at": "2026-10-21T15:04:51"
+ },
+ "Schody Zachodnie 4": {
+  "cid": "bafybeidzvblhzdkdyct2zozbhis4mwpthmoulafo6oqwdjl6e6lgni4jwm",
+  "sha256": "7eebe87d01cd8abd50a7825408aee8c95fbc2c2d6564723582cc48b48e3d1ab8",
+  "bytes": 916393,
+  "pinata_id": "01a15e90-864f-7e53-85f7-75e013d7a06a",
+  "uploaded_at": "2026-10-21T15:04:53"
+ },
+ "Stołówka": {
+  "cid": "bafybeibahagytzw225rb6cjsswfaeetq57n4bo6kgyhq7efddtc74x7i5i",
+  "sha256": "ce1262b2b93024f41eaa197d9e9e5c7337df6b2301ad6f26abde7b41cb578e0c",
+  "bytes": 415626,
+  "pinata_id": "01a15e90-8dd2-77b4-bf85-26d9c915a110",
+  "uploaded_at": "2026-10-21T15:04:55"
+ },
+ "Winda Centralna 1": {
+  "cid": "bafybeibeyfca4vlkgiqy35nzre4ypbyvpdue6gygpklbhg3aax7n3wvkli",
+  "sha256": "1ffdf28549892581150fd1bd332e69c01d70add2826a66021c533f5ff705745f",
+  "bytes": 609231,
+  "pinata_id": "01a15e90-94ab-75f2-b148-6a6dcf90f03c",
+  "uploaded_at": "2026-10-21T15:04:57"
+ },
+ "Winda Centralna 2": {
+  "cid": "bafybeiclqxlcvdbqqwqnnjrfmzfetuux4n5d5gtzu6374zhwhi3ldzcava",
+  "sha256": "96c281a78045f534b8d5dd19bc81068b0d804707a0803c8a38df91115d1a7773",
+  "bytes": 564968,
+  "pinata_id": "01a15e90-9ae2-707f-9ee6-5daad60892a6",
+  "uploaded_at": "2026-10-21T15:04:58"
+ },
+ "Winda Centralna 3": {
+  "cid": "bafybeifmr4rtz2mmnuarn6gsgr3f6gehcud5zfujmgpt2fhtjacjoatvsy",
+  "sha256": "4b88213e26d72fc207cf1aab9ca49099cb1dccf039ac91bb99a027e12522a424",
+  "bytes": 524590,
+  "pinata_id": "01a15e90-a177-7fe0-9787-bf8a9dcf8c93",
+  "uploaded_at": "2026-10-21T15:05:00"
+ },
+ "Winda Centralna 4": {
+  "cid": "bafybeig4xsx2lpgu6sr6kw7vjowumb3t3vr6eztweszgn6vtvritgcgudu",
+  "sha256": "6f067bcdf71adcb82a49e22b289553cb8a6d26d53044de0fc836b7603bcc2f63",
+  "bytes": 626522,
+  "pinata_id": "01a15e90-a8f7-7e10-87a3-274e2d3595b1",
+  "uploaded_at": "2026-10-21T15:05:02"
+ },
+ "Winda Centralna 5": {
+  "cid": "bafybeibsgspvhzz3iixa4mskwidraqduggy6puzuimc346qvjlxpuxwnnu",
+  "sha256": "0fe5ff035c493bece51b29f9af594c87018911c003a5a4e367fdc48201781809",
+  "bytes": 528863,
+  "pinata_id": "01a15e90-b088-7873-872f-e5b7931a9a14",
+  "uploaded_at": "2026-10-21T15:05:04"
+ },
+ "Winda Centralna 6": {
+  "cid": "bafybeibbvpbe6hkwoz6wnwyxvlnxyy5gbp6acozv4cgvack26bj6yead5u",
+  "sha256": "d9e9380eeaf898516aa7cbbac595b4cb7265cd60e5a50086d6d1c692acaa488e",
+  "bytes": 536257,
+  "pinata_id": "01a15e90-b7ea-7852-9c19-8bd8312ce840",
+  "uploaded_at": "2026-10-21T15:05:06"
+ },
+ "Winda Południowa 1": {
+  "cid": "bafybeibesx7ygk73vgedi7vukfortxjk6eko5xd6w7izplfqsutlffykvy",
+  "sha256": "a9fb74c8de2829555e369af190216afa0b6f63d05de8a972424cbabc99083b02",
+  "bytes": 529992,
+  "pinata_id": "01a15e90-bebb-7c34-8c1a-a437f94e7188",
+  "uploaded_at": "2026-10-21T15:05:07"
+ },
+ "Winda Południowa 2": {
+  "cid": "bafybeifmnwwc4c4w2hartf64iymngqj6sjhickjihbjiokl3h5tyubg6gu",
+  "sha256": "ce80d4355b39bc888e647a753f5787362a59c9d850cec050c5f12632de8ea61a",
+  "bytes": 646107,
+  "pinata_id": "01a15e90-c51d-7f5f-a3a9-0e35a5d29800",
+  "uploaded_at": "2026-10-21T15:05:09"
+ },
+ "Winda Południowa 3": {
+  "cid": "bafybeifabceswxqixo7w4mp55rso6nse7dpbwrrd4gbg7ni3brytkdzkou",
+  "sha256": "53170111e8e356b9f66dc9d2d3c596a4cdf6111f49976c94f0a2b5f130fac3f3",
+  "bytes": 660498,
+  "pinata_id": "01a15e90-cbd5-74b8-8e26-ebf9c3aeea16",
+  "uploaded_at": "2026-10-21T15:05:11"
+ },
+ "Winda Południowa 4": {
+  "cid": "bafybeicfkmqpsqvwcxi3xwdswpc3i33rvk4lym52sfoycphlasmymqdm3u",
+  "sha256": "d43103aa08563b87fdf03279c01c0884604686eb1dc5591268509ea39f45203e",
+  "bytes": 701469,
+  "pinata_id": "01a15e90-d2ee-7c5e-a950-8f28a5dc8a61",
+  "uploaded_at": "2026-10-21T15:05:13"
+ },
+ "Winda Południowa 5": {
+  "cid": "bafybeiffr7u2tt7jesjqbitys4twyvykitcmjp3gkeg5fbpjl4o3j3zzp4",
+  "sha256": "ad66cf0d5c079ee9aec44a8b4ec65816480424e00a389eebd78bff137a6271ff",
+  "bytes": 662834,
+  "pinata_id": "01a15e90-da38-7469-9d7a-fec111ef305b",
+  "uploaded_at": "2026-10-21T15:05:15"
+ },
+ "Winda Południowa 6": {
+  "cid": "bafybeiabdl2r6iqicjz44lfifpc2ijeg2ieiltxfgo5syt4x6ydwax3yby",
+  "sha256": "7cf39289cf1c5ba5af732ef7c268f0cd0ea968d3b1911c5ed74d7bbbf042347f",
+  "bytes": 669802,
+  "pinata_id": "01a15e90-e206-7fa4-8e61-3ac50a644134",
+  "uploaded_at": "2026-10-21T15:05:17"
+ },
+ "Winda Południowa 7": {
+  "cid": "bafybeiadylgpaamfl5tmlpwtmyw5fgk3ybosbeeagzms7jygtnpegqvodm",
+  "sha256": "5771545a5f852bc24903ac9eaf242f262ab0584180d01c13f5edc36352d48cc3",
+  "bytes": 781986,
+  "pinata_id": "01a15e90-e96d-7a0b-8f31-acd045461303",
+  "uploaded_at": "2026-10-21T15:05:19"
+ },
+ "Zewnątrz Południe": {
+  "cid": "bafybeidthnhbk5tqzooc4jbswt3cutpzy4t4eejsqadznirhhthboyooam",
+  "sha256": "c86cdc6758c76ed4d8cd03e87ba5d1d2771ff4f6f2b88cce022f789700c869d5",
+  "bytes": 896432,
+  "pinata_id": "01a15e90-f087-7fdc-939f-8badb9e5c294",
+  "uploaded_at": "2026-10-21T15:05:20"
+ },
+ "Zewnątrz Południe 1": {
+  "cid": "bafybeigyq2dkaql4ch26dlyguxussntuifhs2tfc4v6hjkcl7het7ouddi",
+  "sha256": "7f0abe076f71350ee541f9538fc2532f4aa7b2304dc38976d308bd7152256fbc",
+  "bytes": 943728,
+  "pinata_id": "01a15e90-f779-7521-a320-f4d41e9638de",
+  "uploaded_at": "2026-10-21T15:05:22"
+ },
+ "Zewnątrz Południe 2": {
+  "cid": "bafybeiaazklyc5vlgopm3mkjenvsmmcqdkg3nhodelqoqr22rlwjhlraky",
+  "sha256": "f6caccf4754f324d2819534741f2442d5849e4213f657e0cae73272ab8fa0c25",
+  "bytes": 946717,
+  "pinata_id": "01a15e90-fec9-7815-9846-bad427d2c088",
+  "uploaded_at": "2026-10-21T15:05:24"
+ },
+ "Zewnątrz Północ 1": {
+  "cid": "bafybeialgzdvymkhs2fyq2ml62idjkylala26wpmrjtibutb3sichdieoi",
+  "sha256": "2d882a3bff47098343eb473b50acb87e289334fee9864845aae7c5a4294f0aab",
+  "bytes": 772743,
+  "pinata_id": "01a15e91-06e3-76e0-a553-565fc9c6bc42",
+  "uploaded_at": "2026-10-21T15:05:26"
+ },
+ "Zewnątrz Północ 2": {
+  "cid": "bafybeigcrlh5me6ftkzvbmkx5odn64pi54qitrqpkczxcv3yapjc46chkm",
+  "sha256": "debb981937118ca43038f0f1e8a597b62d87f616273deb12e81e53ffc7e5dae4",
+  "bytes": 736851,
+  "pinata_id": "01a15e91-0e47-7591-8898-8ef071f0082a",
+  "uploaded_at": "2026-10-21T15:05:28"
+ },
+ "Zewnątrz Wschód 1": {
+  "cid": "bafybeiaq7nzny4eymleburlbfrwbcvnfyocnj73tjtnwdotxhk7jywiul4",
+  "sha256": "da8d31eff3d721b266c6ff571e935febca76cc42d7a3452b9ffd73430d423742",
+  "bytes": 742869,
+  "pinata_id": "01a15e91-154e-7c4d-996b-04b76b56b867",
+  "uploaded_at": "2026-10-21T15:05:30"
+ },
+ "Zewnątrz Zachód 1": {
+  "cid": "bafybeiglhfu2tvnwopvpg72ckpwsrnfwfp4rvvly2lwwkdghyxn3er6bvq",
+  "sha256": "1940c31d611639c29e34ac2a4fbacc3040b2d7369bd6fe4c1a4798fbba3e7dca",
+  "bytes": 848176,
+  "pinata_id": "01a15e91-1c72-7488-9ea3-06e733d6ced6",
+  "uploaded_at": "2026-10-21T15:05:32"
+ },
+ "Zewnątrz Zachód 2": {
+  "cid": "bafybeiha2x5afatg77ebdbshu23cxnqv36shfcgdevnzzh7fppaqeqf3yq",
+  "sha256": "5428636b5c71575bb415f27ec7d1d882420f141795b5dab0e8d1fbc1f2959652",
+  "bytes": 904114,
+  "pinata_id": "01a15e91-23d2-7b41-bbfa-fb3660d0598d",
+  "uploaded_at": "2026-10-21T15:05:34"
+ },
+ "Zewnątrz Zachód 3": {
+  "cid": "bafybeiguogvjqo2iokdwgizxphesuitaeedu7yqhaijo2vnxmt6fykkiwm",
+  "sha256": "37ae3120e4fd6ade1171c7c649290c4ebc399ed11ccf5cbd143bb0105a8e6a7e",
+  "bytes": 854046,
+  "pinata_id": "01a15e91-2b3b-7268-9dff-d866fba3f851",
+  "uploaded_at": "2026-10-21T15:05:35"
+ }
+}

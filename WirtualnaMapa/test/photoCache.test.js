@@ -61,7 +61,7 @@ const GW = ['https://gw1.test/ipfs/', 'https://gw2.test/ipfs/'];
 
 function setup(opts = {}, n = 6) {
   const fetchImpl = opts.fetchImpl || makeFetch();
-  const cache = new PhotoCache({ gateways: GW, localUrl: i => `/photos/${i.name}.jpg`, fetchImpl, cachesImpl: opts.cachesImpl, maxBackground: 3 });
+  const cache = new PhotoCache({ gateways: GW, fetchImpl, cachesImpl: opts.cachesImpl, maxBackground: 3 });
   cache.register(Array.from({ length: n }, (_, k) => node(k + 1, `P${k + 1}`)));
   return { cache, fetchImpl };
 }
@@ -86,7 +86,7 @@ test('get raportuje postęp pobierania', async () => {
   assert.deepStrictEqual(seen[seen.length - 1], [BYTES, BYTES]);
 });
 
-test('awaria pierwszej bramy -> druga brama; awaria obu -> lokalny zapas', async () => {
+test('awaria pierwszej bramy -> druga brama; awaria obu -> błąd', async () => {
   const f1 = makeFetch({ 'https://gw1.test/ipfs/cid1': { fail: 500 } });
   const { cache } = setup({ fetchImpl: f1 });
   const r = await cache.get(1);
@@ -95,13 +95,12 @@ test('awaria pierwszej bramy -> druga brama; awaria obu -> lokalny zapas', async
 
   const f2 = makeFetch({ 'https://gw1.test/ipfs/cid2': { fail: 429 }, 'https://gw2.test/ipfs/cid2': { fail: 503 } });
   const { cache: c2 } = setup({ fetchImpl: f2 });
-  const r2 = await c2.get(2);
-  assert.strictEqual(r2.source, 'local');
-  assert.strictEqual(f2.calls[2], '/photos/P2.jpg');
+  await assert.rejects(() => c2.get(2));
+  assert.deepStrictEqual(f2.calls, ['https://gw1.test/ipfs/cid2', 'https://gw2.test/ipfs/cid2']);
 });
 
 test('całkowita awaria odrzuca get, a kolejna próba może się udać', async () => {
-  const plan = { 'https://gw1.test/ipfs/cid1': { fail: 500 }, 'https://gw2.test/ipfs/cid1': { fail: 500 }, '/photos/P1.jpg': { fail: 404 } };
+  const plan = { 'https://gw1.test/ipfs/cid1': { fail: 500 }, 'https://gw2.test/ipfs/cid1': { fail: 500 } };
   const { cache } = setup({ fetchImpl: makeFetch(plan) });
   await assert.rejects(() => cache.get(1));
   assert.strictEqual(cache.isReady(1), false);
@@ -190,12 +189,11 @@ test('trwały cache: drugi start nie pobiera z sieci, a nieznane CID-y są sprz�
   assert.strictEqual(second.fetchImpl.calls.length, 0);
 });
 
-test('zapas lokalny nie trafia do trwałego cache', async () => {
+test('nieudane pobranie nie trafia do trwałego cache', async () => {
   const caches = fakeCaches();
   const plan = { 'https://gw1.test/ipfs/cid1': { fail: 500 }, 'https://gw2.test/ipfs/cid1': { fail: 500 } };
   const { cache } = setup({ fetchImpl: makeFetch(plan), cachesImpl: caches });
-  const r = await cache.get(1);
-  assert.strictEqual(r.source, 'local');
+  await assert.rejects(() => cache.get(1));
   const store = caches.stores.get('wm-photos-v1');
   assert.ok(!store || store.size === 0);
 });
